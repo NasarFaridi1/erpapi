@@ -8,8 +8,6 @@ use Illuminate\Support\Facades\DB;
 
 class PowerBiController extends Controller
 {
-    
-
     public function contracts()
     {
         try {
