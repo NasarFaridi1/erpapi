@@ -53,5 +53,6 @@ class Kernel extends HttpKernel
         'active.package' => \App\Http\Middleware\EnsureActivePackage::class,  
         'powerbi.key' => \App\Http\Middleware\ApiKeyMiddleware::class,
         'azure.auth' => \App\Http\Middleware\AzureAdTokenMiddleware::class,
+        'oauth.auth' => \App\Http\Middleware\OAuth2TokenMiddleware::class,
     ];
 }

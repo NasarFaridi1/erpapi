@@ -3,6 +3,14 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\PowerBiController;
+use App\Http\Controllers\Api\OAuthController;
+
+/*
+|--------------------------------------------------------------------------
+| OAuth 2.0 Token Generation Route
+|--------------------------------------------------------------------------
+*/
+Route::post('/oauth/token', [OAuthController::class, 'issueToken']);
 
 /*
 |--------------------------------------------------------------------------
@@ -14,7 +22,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 Route::prefix('powerbi')
-    ->middleware('azure.auth')
+    ->middleware('oauth.auth')
     ->group(function () {
 
         Route::get('/contacts', [PowerBiController::class, 'contacts']);

@@ -1,0 +1,228 @@
+{
+	"info": {
+		"_postman_id": "b7e2d1c0-4f3a-4b9e-9c8d-1e0f9a8b7c6d",
+		"name": "ERP API - Self-Hosted OAuth 2.0 Authentication",
+		"description": "Postman Collection for testing ERP PowerBI APIs secured with Built-in OAuth 2.0 (Client Credentials Grant) JWT Authentication.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "client_id",
+			"value": "powerbi_client_2026",
+			"type": "string"
+		},
+		{
+			"key": "client_secret",
+			"value": "sec_erp_api_9823472398472938",
+			"type": "string"
+		},
+		{
+			"key": "oauth_access_token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "Get OAuth 2.0 Bearer Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.access_token) {",
+									"    pm.collectionVariables.set('oauth_access_token', jsonData.access_token);",
+									"    console.log('Successfully acquired OAuth 2.0 Access Token:', jsonData.access_token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "client_credentials",
+									"type": "text"
+								},
+								{
+									"key": "client_id",
+									"value": "{{client_id}}",
+									"type": "text"
+								},
+								{
+									"key": "client_secret",
+									"value": "{{client_secret}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/oauth/token",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"oauth",
+								"token"
+							]
+						},
+						"description": "Exchanges Client ID & Client Secret for a 1-hour signed OAuth 2.0 Bearer JWT token."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. PowerBI Secure Endpoints",
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{oauth_access_token}}",
+						"type": "string"
+					}
+				]
+			},
+			"item": [
+				{
+					"name": "Get Contacts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/powerbi/contacts",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"powerbi",
+								"contacts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Companies",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/powerbi/companies",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"powerbi",
+								"companies"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/powerbi/products",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"powerbi",
+								"products"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Countries",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/powerbi/countries",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"powerbi",
+								"countries"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Contracts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/powerbi/contracts",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"powerbi",
+								"contracts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Contact Dashboard Summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/powerbi/contact/1/dashboard-summary",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"powerbi",
+								"contact",
+								"1",
+								"dashboard-summary"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
