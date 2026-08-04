@@ -14,7 +14,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 Route::prefix('powerbi')
-    // ->middleware('powerbi.key')
+    ->middleware('azure.auth')
     ->group(function () {
 
         Route::get('/contacts', [PowerBiController::class, 'contacts']);

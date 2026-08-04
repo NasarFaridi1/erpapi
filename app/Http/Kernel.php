@@ -52,5 +52,6 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'active.package' => \App\Http\Middleware\EnsureActivePackage::class,  
         'powerbi.key' => \App\Http\Middleware\ApiKeyMiddleware::class,
+        'azure.auth' => \App\Http\Middleware\AzureAdTokenMiddleware::class,
     ];
 }
