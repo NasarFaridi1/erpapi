@@ -13,11 +13,7 @@ class PowerBiController extends Controller
         try {
             $contracts = DB::table('contracts')->get();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Contracts fetched successfully',
-                'data' => $contracts
-            ], 200);
+            return response()->json($contracts, 200);
 
         } catch (\Exception $e) {
 
@@ -34,11 +30,7 @@ class PowerBiController extends Controller
         try {
             $contacts = DB::table('contacts')->get();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Contacts fetched successfully',
-                'data' => $contacts
-            ]);
+            return response()->json($contacts);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -77,11 +69,7 @@ class PowerBiController extends Controller
                 ],404);
             }
 
-            return response()->json([
-                'success'=>true,
-                'message'=>'Contact information fetched successfully',
-                'data'=>$contact
-            ]);
+            return response()->json($contact);
 
         } catch (\Exception $e){
 
@@ -153,11 +141,7 @@ class PowerBiController extends Controller
 
                 ->get();
 
-            return response()->json([
-                'success'=>true,
-                'message'=>'Purchasing Side',
-                'data'=>$data
-            ]);
+            return response()->json($data);
 
         } catch(\Exception $e){
 
@@ -230,11 +214,7 @@ class PowerBiController extends Controller
 
                 ->get();
 
-            return response()->json([
-                'success'=>true,
-                'message'=>'Sales Side',
-                'data'=>$data
-            ]);
+            return response()->json($data);
 
         } catch(\Exception $e){
 
@@ -287,11 +267,7 @@ class PowerBiController extends Controller
 
                 ->get();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Buying contracts by payment terms fetched successfully',
-                'data' => $data
-            ]);
+            return response()->json($data);
 
         } catch (\Exception $e) {
 
@@ -350,11 +326,7 @@ class PowerBiController extends Controller
 
                 ->get();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Selling contracts by payment terms fetched successfully',
-                'data' => $data
-            ]);
+            return response()->json($data);
 
         } catch (\Exception $e) {
 
@@ -413,11 +385,7 @@ class PowerBiController extends Controller
 
                 ->get();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Product buying by country fetched successfully',
-                'data' => $data
-            ]);
+            return response()->json($data);
 
         } catch (\Exception $e) {
 
@@ -462,11 +430,7 @@ class PowerBiController extends Controller
                 ->orderByDesc('total_quantity')
                 ->get();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Product selling by country fetched successfully',
-                'data' => $data
-            ]);
+            return response()->json($data);
 
         } catch (\Exception $e) {
 
@@ -484,11 +448,7 @@ class PowerBiController extends Controller
         try {
             $countries = DB::table('countries')->get();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Countries fetched successfully',
-                'data' => $countries
-            ]);
+            return response()->json($countries);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -556,11 +516,7 @@ class PowerBiController extends Controller
 
                 ->get();
 
-            return response()->json([
-                'success'=>true,
-                'message'=>'Credit/Debit Notes fetched successfully',
-                'data'=>$data
-            ]);
+            return response()->json($data);
 
         } catch(\Exception $e){
 
@@ -683,39 +639,21 @@ class PowerBiController extends Controller
             */
 
             return response()->json([
-                'success' => true,
-                'message' => 'Dashboard summary fetched successfully',
-
-                'data' => [
-
-                    'buying' => [
-
-                        'contracts' => (int) ($buying->total_buy_contracts ?? 0),
-                        'quantity' => (double) ($buying->total_buy_quantity ?? 0),
-                        'value' => (double) ($buying->total_buy_value ?? 0),
-
-                    ],
-
-                    'selling' => [
-
-                        'contracts' => (int) ($selling->total_sell_contracts ?? 0),
-                        'quantity' => (double) ($selling->total_sell_quantity ?? 0),
-                        'value' => (double) ($selling->total_sell_value ?? 0),
-
-                    ],
-
-                    'credit_notes' => $creditNotes,
-
-                    'debit_notes' => $debitNotes,
-
-                    'revenue' => $revenue,
-
-                    'top_product' => $topProduct,
-
-                    'top_country' => $topCountry
-
-                ]
-
+                'buying' => [
+                    'contracts' => (int) ($buying->total_buy_contracts ?? 0),
+                    'quantity' => (double) ($buying->total_buy_quantity ?? 0),
+                    'value' => (double) ($buying->total_buy_value ?? 0),
+                ],
+                'selling' => [
+                    'contracts' => (int) ($selling->total_sell_contracts ?? 0),
+                    'quantity' => (double) ($selling->total_sell_quantity ?? 0),
+                    'value' => (double) ($selling->total_sell_value ?? 0),
+                ],
+                'credit_notes' => $creditNotes,
+                'debit_notes' => $debitNotes,
+                'revenue' => $revenue,
+                'top_product' => $topProduct,
+                'top_country' => $topCountry
             ]);
 
         } catch (\Exception $e) {
@@ -828,33 +766,15 @@ class PowerBiController extends Controller
             $creditDebit = $this->creditDebitData($contactId);
 
             return response()->json([
-
-                'success' => true,
-
-                'message' => 'Dashboard loaded successfully',
-
-                'data' => [
-
-                    'contact_information' => $contactInformation,
-
-                    'dashboard_summary' => $dashboardSummary,
-
-                    'purchasing_side' => $purchases,
-
-                    'sales_side' => $sales,
-
-                    'buying_payment_terms' => $buyingPaymentTerms,
-
-                    'selling_payment_terms' => $sellingPaymentTerms,
-
-                    'product_buying_country' => $buyingCountry,
-
-                    'product_selling_country' => $sellingCountry,
-
-                    'credit_debit_notes' => $creditDebit
-
-                ]
-
+                'contact_information' => $contactInformation,
+                'dashboard_summary' => $dashboardSummary,
+                'purchasing_side' => $purchases,
+                'sales_side' => $sales,
+                'buying_payment_terms' => $buyingPaymentTerms,
+                'selling_payment_terms' => $sellingPaymentTerms,
+                'product_buying_country' => $buyingCountry,
+                'product_selling_country' => $sellingCountry,
+                'credit_debit_notes' => $creditDebit
             ]);
 
         } catch (\Exception $e){
@@ -873,11 +793,7 @@ class PowerBiController extends Controller
         try {
             $products = DB::table('products')->get();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Products fetched successfully',
-                'data' => $products
-            ]);
+            return response()->json($products);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -893,11 +809,7 @@ class PowerBiController extends Controller
         try {
             $companies = DB::table('companies')->get();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Companies fetched successfully',
-                'data' => $companies
-            ]);
+            return response()->json($companies);
 
         } catch (\Exception $e) {
             return response()->json([
