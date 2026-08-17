@@ -1,8 +1,8 @@
 {
 	"info": {
 		"_postman_id": "b7e2d1c0-4f3a-4b9e-9c8d-1e0f9a8b7c6d",
-		"name": "ERP API - Self-Hosted OAuth 2.0 Authentication",
-		"description": "Postman Collection for testing ERP PowerBI APIs secured with Built-in OAuth 2.0 (Client Credentials Grant) JWT Authentication.",
+		"name": "ERP API - Static OAuth 2.0 Collection",
+		"description": "Complete Postman Collection for testing all 15 ERP PowerBI endpoints secured with Static OAuth 2.0 Bearer JWT Authentication.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
@@ -87,14 +87,14 @@
 								"token"
 							]
 						},
-						"description": "Exchanges Client ID & Client Secret for a 1-hour signed OAuth 2.0 Bearer JWT token."
+						"description": "Exchanges static Client ID & Client Secret for a 1-hour signed OAuth 2.0 Bearer JWT token."
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "2. PowerBI Secure Endpoints",
+			"name": "2. PowerBI Secured Endpoints",
 			"auth": {
 				"type": "bearer",
 				"bearer": [
@@ -107,117 +107,196 @@
 			},
 			"item": [
 				{
-					"name": "Get Contacts",
+					"name": "1. Get Contacts",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
 							"raw": "{{base_url}}/api/powerbi/contacts",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"powerbi",
-								"contacts"
-							]
+							"host": ["{{base_url}}"],
+							"path": ["api", "powerbi", "contacts"]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Get Companies",
+					"name": "2. Get Contact Information by ID",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/powerbi/companies",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"powerbi",
-								"companies"
-							]
+							"raw": "{{base_url}}/api/powerbi/contact/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "powerbi", "contact", "1"]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Get Products",
+					"name": "3. Get Contact Purchases",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/powerbi/products",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"powerbi",
-								"products"
-							]
+							"raw": "{{base_url}}/api/powerbi/contact/1/purchases",
+							"host": ["{{base_url}}"],
+							"path": ["api", "powerbi", "contact", "1", "purchases"]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Get Countries",
+					"name": "4. Get Contact Sales",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/powerbi/contact/1/sales",
+							"host": ["{{base_url}}"],
+							"path": ["api", "powerbi", "contact", "1", "sales"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "5. Get Countries",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
 							"raw": "{{base_url}}/api/powerbi/countries",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"powerbi",
-								"countries"
-							]
+							"host": ["{{base_url}}"],
+							"path": ["api", "powerbi", "countries"]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Get Contracts",
+					"name": "6. Get Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/powerbi/products",
+							"host": ["{{base_url}}"],
+							"path": ["api", "powerbi", "products"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "7. Get Companies",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/powerbi/companies",
+							"host": ["{{base_url}}"],
+							"path": ["api", "powerbi", "companies"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "8. Get Contracts",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
 							"raw": "{{base_url}}/api/powerbi/contracts",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"powerbi",
-								"contracts"
-							]
+							"host": ["{{base_url}}"],
+							"path": ["api", "powerbi", "contracts"]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Get Contact Dashboard Summary",
+					"name": "9. Get Buying Payment Terms",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/powerbi/contact/1/buying-payment-terms",
+							"host": ["{{base_url}}"],
+							"path": ["api", "powerbi", "contact", "1", "buying-payment-terms"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "10. Get Selling Payment Terms",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/powerbi/contact/1/selling-payment-terms",
+							"host": ["{{base_url}}"],
+							"path": ["api", "powerbi", "contact", "1", "selling-payment-terms"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "11. Get Product Buying Country",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/powerbi/contact/1/product-buying-country",
+							"host": ["{{base_url}}"],
+							"path": ["api", "powerbi", "contact", "1", "product-buying-country"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "12. Get Product Selling Country",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/powerbi/contact/1/product-selling-country",
+							"host": ["{{base_url}}"],
+							"path": ["api", "powerbi", "contact", "1", "product-selling-country"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "13. Get Credit/Debit Notes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/powerbi/contact/1/credit-debit-notes",
+							"host": ["{{base_url}}"],
+							"path": ["api", "powerbi", "contact", "1", "credit-debit-notes"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "14. Get Dashboard Summary",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
 							"raw": "{{base_url}}/api/powerbi/contact/1/dashboard-summary",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"powerbi",
-								"contact",
-								"1",
-								"dashboard-summary"
-							]
+							"host": ["{{base_url}}"],
+							"path": ["api", "powerbi", "contact", "1", "dashboard-summary"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "15. Get Full Dashboard Data",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/powerbi/powerbi/contact/1/dashboard",
+							"host": ["{{base_url}}"],
+							"path": ["api", "powerbi", "powerbi", "contact", "1", "dashboard"]
 						}
 					},
 					"response": []

@@ -21,11 +21,28 @@ class OAuth2TokenMiddleware
     public function handle(Request $request, Closure $next)
     {
         $authHeader = $request->header('Authorization');
+        $apiKey = $request->header('X-API-KEY') ?: $request->header('X-SECRET-KEY');
 
+        // 1. Direct Secret API Key Header Support (for Power BI "From Web" UI dialog)
+        if (!empty($apiKey)) {
+            $allowedSecrets = [
+                config('oauth.default_client.client_secret'),
+                env('OAUTH_CLIENT_SECRET'),
+                env('POWERBI_API_KEY'),
+            ];
+
+            foreach ($allowedSecrets as $secret) {
+                if (!empty($secret) && hash_equals($secret, $apiKey)) {
+                    return $next($request);
+                }
+            }
+        }
+
+        // 2. Standard OAuth 2.0 Bearer JWT Token Support
         if (empty($authHeader) || !preg_match('/Bearer\s+(\S+)/i', $authHeader, $matches)) {
             return response()->json([
                 'error' => 'unauthorized',
-                'message' => 'Missing or malformed Authorization header. Expected: Bearer <access_token>'
+                'message' => 'Missing or malformed Authorization header. Provide Bearer token or X-API-KEY header.'
             ], 401);
         }
 

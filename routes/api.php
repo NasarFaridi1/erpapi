@@ -22,7 +22,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 Route::prefix('powerbi')
-    ->middleware('oauth.auth')
+    ->middleware('powerbi.key')
     ->group(function () {
 
         Route::get('/contacts', [PowerBiController::class, 'contacts']);
