@@ -8,28 +8,12 @@ use Illuminate\Support\Facades\DB;
 
 class PowerBiController extends Controller
 {
-    /**
-     * Helper to return response in raw format (for Power BI) or wrapped format (for legacy clients).
-     */
-    private function respond($data, string $message = 'Success')
-    {
-        if (request()->boolean('wrapped') || request()->boolean('legacy') || str_contains(request()->path(), 'legacy')) {
-            return response()->json([
-                'success' => true,
-                'message' => $message,
-                'data' => $data
-            ]);
-        }
-
-        return response()->json($data);
-    }
-
     public function contracts()
     {
         try {
             $contracts = DB::table('contracts')->get();
 
-            return $this->respond($contracts, 'Contracts fetched successfully');
+            return response()->json($contracts, 200);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -45,7 +29,7 @@ class PowerBiController extends Controller
         try {
             $contacts = DB::table('contacts')->get();
 
-            return $this->respond($contacts, 'Contacts fetched successfully');
+            return response()->json($contacts);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -83,7 +67,7 @@ class PowerBiController extends Controller
                 ], 404);
             }
 
-            return $this->respond($contact, 'Contact information fetched successfully');
+            return response()->json($contact);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -126,7 +110,7 @@ class PowerBiController extends Controller
                 ->where('d.contact_id', $contactId)
                 ->get();
 
-            return $this->respond($data, 'Purchasing Side');
+            return response()->json($data);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -169,7 +153,7 @@ class PowerBiController extends Controller
                 ->where('d.contact_id', $contactId)
                 ->get();
 
-            return $this->respond($data, 'Sales Side');
+            return response()->json($data);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -202,7 +186,7 @@ class PowerBiController extends Controller
                 ->orderBy('total_value', 'DESC')
                 ->get();
 
-            return $this->respond($data, 'Buying contracts by payment terms fetched successfully');
+            return response()->json($data);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -235,7 +219,7 @@ class PowerBiController extends Controller
                 ->orderByDesc('total_value')
                 ->get();
 
-            return $this->respond($data, 'Selling contracts by payment terms fetched successfully');
+            return response()->json($data);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -269,7 +253,7 @@ class PowerBiController extends Controller
                 ->orderByDesc('total_quantity')
                 ->get();
 
-            return $this->respond($data, 'Product buying by country fetched successfully');
+            return response()->json($data);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -305,7 +289,7 @@ class PowerBiController extends Controller
                 ->orderByDesc('total_quantity')
                 ->get();
 
-            return $this->respond($data, 'Product selling by country fetched successfully');
+            return response()->json($data);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -321,7 +305,7 @@ class PowerBiController extends Controller
         try {
             $countries = DB::table('countries')->get();
 
-            return $this->respond($countries, 'Countries fetched successfully');
+            return response()->json($countries);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -362,7 +346,7 @@ class PowerBiController extends Controller
                 ->orderBy('dn.note_date', 'DESC')
                 ->get();
 
-            return $this->respond($data, 'Credit/Debit Notes fetched successfully');
+            return response()->json($data);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -433,7 +417,7 @@ class PowerBiController extends Controller
 
             $revenue = ($selling->total_sell_value ?? 0) - ($buying->total_buy_value ?? 0);
 
-            $summaryData = [
+            return response()->json([
                 'buying' => [
                     'contracts' => (int) ($buying->total_buy_contracts ?? 0),
                     'quantity' => (double) ($buying->total_buy_quantity ?? 0),
@@ -449,9 +433,7 @@ class PowerBiController extends Controller
                 'revenue' => $revenue,
                 'top_product' => $topProduct,
                 'top_country' => $topCountry
-            ];
-
-            return $this->respond($summaryData, 'Dashboard summary fetched successfully');
+            ]);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -491,7 +473,7 @@ class PowerBiController extends Controller
             $sellingCountry = $this->productSellingCountryData($contactId);
             $creditDebit = $this->creditDebitData($contactId);
 
-            $dashboardData = [
+            return response()->json([
                 'contact_information' => $contactInformation,
                 'dashboard_summary' => $dashboardSummary,
                 'purchasing_side' => $purchases,
@@ -501,9 +483,7 @@ class PowerBiController extends Controller
                 'product_buying_country' => $buyingCountry,
                 'product_selling_country' => $sellingCountry,
                 'credit_debit_notes' => $creditDebit
-            ];
-
-            return $this->respond($dashboardData, 'Dashboard loaded successfully');
+            ]);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -519,7 +499,7 @@ class PowerBiController extends Controller
         try {
             $products = DB::table('products')->get();
 
-            return $this->respond($products, 'Products fetched successfully');
+            return response()->json($products);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -535,7 +515,7 @@ class PowerBiController extends Controller
         try {
             $companies = DB::table('companies')->get();
 
-            return $this->respond($companies, 'Companies fetched successfully');
+            return response()->json($companies);
 
         } catch (\Exception $e) {
             return response()->json([

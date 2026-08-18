@@ -3,18 +3,10 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\PowerBiController;
-use App\Http\Controllers\Api\OAuthController;
 
 /*
 |--------------------------------------------------------------------------
-| OAuth 2.0 Token Generation Route
-|--------------------------------------------------------------------------
-*/
-Route::post('/oauth/token', [OAuthController::class, 'issueToken']);
-
-/*
-|--------------------------------------------------------------------------
-| Power BI Secured Reporting APIs
+| Power BI Secured Reporting APIs (X-API-KEY Header Protected)
 |--------------------------------------------------------------------------
 */
 Route::prefix('powerbi')
