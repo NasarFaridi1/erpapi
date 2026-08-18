@@ -17,15 +17,19 @@ Route::post('/oauth/token', [OAuthController::class, 'issueToken']);
 | Super Admin Reports APIs
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum'])->group(function () {
-
-});
+Route::prefix('powerbi')
+    ->middleware('powerbi.key')
+    ->group(function () {
+    Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/contacts', [PowerBiController::class, 'contacts']);
+    });
+ });
 
 Route::prefix('powerbi')
     ->middleware('powerbi.key')
     ->group(function () {
 
-        Route::get('/contacts', [PowerBiController::class, 'contacts']);
+        // Route::get('/contacts', [PowerBiController::class, 'contacts']);
 
         Route::get('/contact/{id}', [PowerBiController::class, 'contactInformation']);
 
