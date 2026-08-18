@@ -14,22 +14,14 @@ Route::post('/oauth/token', [OAuthController::class, 'issueToken']);
 
 /*
 |--------------------------------------------------------------------------
-| Super Admin Reports APIs
+| Power BI Secured Reporting APIs
 |--------------------------------------------------------------------------
 */
 Route::prefix('powerbi')
     ->middleware('powerbi.key')
     ->group(function () {
-    Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/contacts', [PowerBiController::class, 'contacts']);
-    });
- });
 
-Route::prefix('powerbi')
-    ->middleware('powerbi.key')
-    ->group(function () {
-
-        // Route::get('/contacts', [PowerBiController::class, 'contacts']);
+        Route::get('/contacts', [PowerBiController::class, 'contacts']);
 
         Route::get('/contact/{id}', [PowerBiController::class, 'contactInformation']);
 
@@ -48,6 +40,7 @@ Route::prefix('powerbi')
         Route::get('/contact/{id}/buying-payment-terms', [PowerBiController::class, 'buyingPaymentTerms']);
 
         Route::get('/contact/{id}/selling-payment-terms', [PowerBiController::class, 'sellingPaymentTerms']);
+
         Route::get('/contact/{id}/product-buying-country', [PowerBiController::class, 'productBuyingCountry']);
 
         Route::get('/contact/{id}/product-selling-country', [PowerBiController::class, 'productSellingCountry']);
