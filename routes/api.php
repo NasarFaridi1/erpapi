@@ -7,10 +7,10 @@ use App\Http\Controllers\Api\OAuthController;
 
 /*
 |--------------------------------------------------------------------------
-| OAuth 2.0 Token Generation Endpoint
+| OAuth 2.0 Token Generation Endpoint (Supports GET & POST for Power BI)
 |--------------------------------------------------------------------------
 */
-Route::post('/oauth/token', [OAuthController::class, 'issueToken']);
+Route::match(['get', 'post'], '/oauth/token', [OAuthController::class, 'issueToken']);
 
 /*
 |--------------------------------------------------------------------------
