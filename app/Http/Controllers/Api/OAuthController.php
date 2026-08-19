@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Firebase\JWT\JWT;
 use Illuminate\Http\Request;
 use Throwable;
 
@@ -75,7 +74,7 @@ class OAuthController extends Controller
                 ], 401);
             }
 
-            // 3. Generate signed JWT Bearer Token
+            // 3. Generate signed JWT Bearer Token using native PHP (zero vendor dependency)
             $secretKey = (string) (config('oauth.jwt_secret') ?: env('OAUTH_JWT_SECRET', 'super_secret_jwt_key_for_erp_api_2026'));
             $ttl = (int) (config('oauth.token_ttl') ?: env('OAUTH_TOKEN_TTL', 3600));
             $currentTime = time();
@@ -90,7 +89,7 @@ class OAuthController extends Controller
                 'client_name' => $matchedClient['name'] ?? 'Static Client'
             ];
 
-            $jwtToken = JWT::encode($payload, $secretKey, 'HS256');
+            $jwtToken = $this->generateJwt($payload, $secretKey);
 
             return response()->json([
                 'access_token' => $jwtToken,
@@ -103,5 +102,25 @@ class OAuthController extends Controller
                 'message' => 'OAuth token generation failed: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Generate a signed HS256 JWT using native PHP functions.
+     */
+    private function generateJwt(array $payload, string $secret): string
+    {
+        $header = json_encode(['alg' => 'HS256', 'typ' => 'JWT']);
+        $base64UrlHeader = $this->base64UrlEncode($header);
+        $base64UrlPayload = $this->base64UrlEncode(json_encode($payload));
+
+        $signature = hash_hmac('sha256', $base64UrlHeader . "." . $base64UrlPayload, $secret, true);
+        $base64UrlSignature = $this->base64UrlEncode($signature);
+
+        return $base64UrlHeader . "." . $base64UrlPayload . "." . $base64UrlSignature;
+    }
+
+    private function base64UrlEncode(string $data): string
+    {
+        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
     }
 }
