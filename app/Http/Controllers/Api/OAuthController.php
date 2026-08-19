@@ -76,7 +76,7 @@ class OAuthController extends Controller
                 'client_name' => $matchedClient['name'] ?? 'Static Client'
             ];
 
-            $jwtToken = $this->generateJwt($payload, $secretKey);
+            $jwtToken = trim(preg_replace('/\s+/', '', $this->generateJwt($payload, $secretKey)));
 
             return response()->json([
                 'access_token' => $jwtToken,
