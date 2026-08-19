@@ -8,18 +8,40 @@ use Illuminate\Support\Facades\DB;
 
 class PowerBiController extends Controller
 {
+    /**
+     * Helper to return clean array of associative objects for Table.FromRecords compatibility.
+     */
+    private function formatForTable($data)
+    {
+        if (is_null($data)) {
+            return [];
+        }
+
+        $array = json_decode(json_encode($data), true);
+
+        if (empty($array)) {
+            return [];
+        }
+
+        // If single associative object (like contactInformation), wrap in array
+        if (array_keys($array) !== range(0, count($array) - 1)) {
+            return [$array];
+        }
+
+        return array_values($array);
+    }
+
     public function contracts()
     {
         try {
             $contracts = DB::table('contracts')->get();
 
-            return response()->json($contracts, 200);
+            return response()->json($this->formatForTable($contracts), 200);
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch contracts',
-                'error' => $e->getMessage()
+                'error' => 'Failed to fetch contracts',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
@@ -29,13 +51,12 @@ class PowerBiController extends Controller
         try {
             $contacts = DB::table('contacts')->get();
 
-            return response()->json($contacts);
+            return response()->json($this->formatForTable($contacts));
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch contacts',
-                'error' => $e->getMessage()
+                'error' => 'Failed to fetch contacts',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
@@ -61,19 +82,15 @@ class PowerBiController extends Controller
                 ->first();
 
             if (!$contact) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Contact not found'
-                ], 404);
+                return response()->json([], 404);
             }
 
-            return response()->json($contact);
+            return response()->json($this->formatForTable($contact));
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Something went wrong',
-                'error' => $e->getMessage()
+                'error' => 'Something went wrong',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
@@ -110,13 +127,12 @@ class PowerBiController extends Controller
                 ->where('d.contact_id', $contactId)
                 ->get();
 
-            return response()->json($data);
+            return response()->json($this->formatForTable($data));
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Error',
-                'error' => $e->getMessage()
+                'error' => 'Error',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
@@ -153,13 +169,12 @@ class PowerBiController extends Controller
                 ->where('d.contact_id', $contactId)
                 ->get();
 
-            return response()->json($data);
+            return response()->json($this->formatForTable($data));
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Error',
-                'error' => $e->getMessage()
+                'error' => 'Error',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
@@ -186,13 +201,12 @@ class PowerBiController extends Controller
                 ->orderBy('total_value', 'DESC')
                 ->get();
 
-            return response()->json($data);
+            return response()->json($this->formatForTable($data));
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Unable to fetch buying payment terms.',
-                'error' => $e->getMessage()
+                'error' => 'Unable to fetch buying payment terms.',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
@@ -219,13 +233,12 @@ class PowerBiController extends Controller
                 ->orderByDesc('total_value')
                 ->get();
 
-            return response()->json($data);
+            return response()->json($this->formatForTable($data));
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch selling payment terms',
-                'error' => $e->getMessage()
+                'error' => 'Failed to fetch selling payment terms',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
@@ -253,13 +266,12 @@ class PowerBiController extends Controller
                 ->orderByDesc('total_quantity')
                 ->get();
 
-            return response()->json($data);
+            return response()->json($this->formatForTable($data));
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch product buying by country',
-                'error' => $e->getMessage()
+                'error' => 'Failed to fetch product buying by country',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
@@ -289,13 +301,12 @@ class PowerBiController extends Controller
                 ->orderByDesc('total_quantity')
                 ->get();
 
-            return response()->json($data);
+            return response()->json($this->formatForTable($data));
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch product selling by country',
-                'error' => $e->getMessage()
+                'error' => 'Failed to fetch product selling by country',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
@@ -305,13 +316,12 @@ class PowerBiController extends Controller
         try {
             $countries = DB::table('countries')->get();
 
-            return response()->json($countries);
+            return response()->json($this->formatForTable($countries));
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch countries',
-                'error' => $e->getMessage()
+                'error' => 'Failed to fetch countries',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
@@ -346,13 +356,12 @@ class PowerBiController extends Controller
                 ->orderBy('dn.note_date', 'DESC')
                 ->get();
 
-            return response()->json($data);
+            return response()->json($this->formatForTable($data));
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch Credit/Debit Notes',
-                'error' => $e->getMessage()
+                'error' => 'Failed to fetch Credit/Debit Notes',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
@@ -417,29 +426,28 @@ class PowerBiController extends Controller
 
             $revenue = ($selling->total_sell_value ?? 0) - ($buying->total_buy_value ?? 0);
 
-            return response()->json([
-                'buying' => [
-                    'contracts' => (int) ($buying->total_buy_contracts ?? 0),
-                    'quantity' => (double) ($buying->total_buy_quantity ?? 0),
-                    'value' => (double) ($buying->total_buy_value ?? 0),
-                ],
-                'selling' => [
-                    'contracts' => (int) ($selling->total_sell_contracts ?? 0),
-                    'quantity' => (double) ($selling->total_sell_quantity ?? 0),
-                    'value' => (double) ($selling->total_sell_value ?? 0),
-                ],
-                'credit_notes' => $creditNotes,
-                'debit_notes' => $debitNotes,
-                'revenue' => $revenue,
-                'top_product' => $topProduct,
-                'top_country' => $topCountry
-            ]);
+            $summaryData = [
+                [
+                    'buying_contracts' => (int) ($buying->total_buy_contracts ?? 0),
+                    'buying_quantity' => (double) ($buying->total_buy_quantity ?? 0),
+                    'buying_value' => (double) ($buying->total_buy_value ?? 0),
+                    'selling_contracts' => (int) ($selling->total_sell_contracts ?? 0),
+                    'selling_quantity' => (double) ($selling->total_sell_quantity ?? 0),
+                    'selling_value' => (double) ($selling->total_sell_value ?? 0),
+                    'credit_notes' => $creditNotes,
+                    'debit_notes' => $debitNotes,
+                    'revenue' => $revenue,
+                    'top_product' => $topProduct->name ?? '',
+                    'top_country' => $topCountry->name ?? ''
+                ]
+            ];
+
+            return response()->json($summaryData);
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch dashboard summary',
-                'error' => $e->getMessage()
+                'error' => 'Failed to fetch dashboard summary',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
@@ -473,23 +481,26 @@ class PowerBiController extends Controller
             $sellingCountry = $this->productSellingCountryData($contactId);
             $creditDebit = $this->creditDebitData($contactId);
 
-            return response()->json([
-                'contact_information' => $contactInformation,
-                'dashboard_summary' => $dashboardSummary,
-                'purchasing_side' => $purchases,
-                'sales_side' => $sales,
-                'buying_payment_terms' => $buyingPaymentTerms,
-                'selling_payment_terms' => $sellingPaymentTerms,
-                'product_buying_country' => $buyingCountry,
-                'product_selling_country' => $sellingCountry,
-                'credit_debit_notes' => $creditDebit
-            ]);
+            $dashboardData = [
+                [
+                    'contact_information' => $contactInformation,
+                    'dashboard_summary' => $dashboardSummary,
+                    'purchasing_side' => $purchases,
+                    'sales_side' => $sales,
+                    'buying_payment_terms' => $buyingPaymentTerms,
+                    'selling_payment_terms' => $sellingPaymentTerms,
+                    'product_buying_country' => $buyingCountry,
+                    'product_selling_country' => $sellingCountry,
+                    'credit_debit_notes' => $creditDebit
+                ]
+            ];
+
+            return response()->json($dashboardData);
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Dashboard Error',
-                'error' => $e->getMessage()
+                'error' => 'Dashboard Error',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
@@ -499,13 +510,12 @@ class PowerBiController extends Controller
         try {
             $products = DB::table('products')->get();
 
-            return response()->json($products);
+            return response()->json($this->formatForTable($products));
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch products',
-                'error' => $e->getMessage()
+                'error' => 'Failed to fetch products',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
@@ -515,13 +525,12 @@ class PowerBiController extends Controller
         try {
             $companies = DB::table('companies')->get();
 
-            return response()->json($companies);
+            return response()->json($this->formatForTable($companies));
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch companies',
-                'error' => $e->getMessage()
+                'error' => 'Failed to fetch companies',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
