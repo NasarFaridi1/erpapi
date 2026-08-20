@@ -542,12 +542,20 @@ class PowerBiController extends Controller
     {
         try {
             $query = DB::table('contracts as c')
-                ->join('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->join('productcontracts as pc', 'pc.sellercontract_id', '=', 'sc.id')
-                ->join('products as p', 'p.id', '=', 'pc.product_id')
-                ->join('deal as d', 'd.id', '=', 'c.sale_id')
+                ->whereNotNull('c.sale_id')
+                ->leftJoin('deal as d', 'd.id', '=', 'c.sale_id')
+                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
+                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
+                ->leftJoin('productcontracts as pc', function ($join) {
+                    $join->on('pc.sellercontract_id', '=', 'sc.id')
+                         ->orOn('pc.buyercontract_id', '=', 'bc.id');
+                })
+                ->leftJoin('products as p', 'p.id', '=', 'pc.product_id')
                 ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
-                ->join('contacts as ct', 'ct.id', '=', 'sc.contact_id')
+                ->leftJoin('contacts as ct', function ($join) {
+                    $join->on('ct.id', '=', 'sc.contact_id')
+                         ->orOn('ct.id', '=', 'd.contact_id');
+                })
                 ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
                 ->leftJoin('companies as client_cmp', 'client_cmp.id', '=', 'ct.company_id')
                 ->leftJoin('payment_type as pt', 'pt.id', '=', 'd.payment_type_id')
@@ -577,7 +585,10 @@ class PowerBiController extends Controller
                 );
 
             if ($request->filled('contact_id')) {
-                $query->where('ct.id', $request->input('contact_id'));
+                $query->where(function ($q) use ($request) {
+                    $q->where('sc.contact_id', $request->input('contact_id'))
+                      ->orWhere('d.contact_id', $request->input('contact_id'));
+                });
             }
 
             $data = $query->orderBy('c.id', 'DESC')->get();
@@ -599,12 +610,20 @@ class PowerBiController extends Controller
     {
         try {
             $query = DB::table('contracts as c')
-                ->join('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->join('productcontracts as pc', 'pc.buyercontract_id', '=', 'bc.id')
-                ->join('products as p', 'p.id', '=', 'pc.product_id')
-                ->join('deal as d', 'd.id', '=', 'c.purchase_id')
+                ->whereNotNull('c.purchase_id')
+                ->leftJoin('deal as d', 'd.id', '=', 'c.purchase_id')
+                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
+                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
+                ->leftJoin('productcontracts as pc', function ($join) {
+                    $join->on('pc.buyercontract_id', '=', 'bc.id')
+                         ->orOn('pc.sellercontract_id', '=', 'sc.id');
+                })
+                ->leftJoin('products as p', 'p.id', '=', 'pc.product_id')
                 ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
-                ->join('contacts as ct', 'ct.id', '=', 'bc.contact_id')
+                ->leftJoin('contacts as ct', function ($join) {
+                    $join->on('ct.id', '=', 'bc.contact_id')
+                         ->orOn('ct.id', '=', 'd.contact_id');
+                })
                 ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
                 ->leftJoin('companies as supplier_cmp', 'supplier_cmp.id', '=', 'ct.company_id')
                 ->leftJoin('payment_type as pt', 'pt.id', '=', 'd.payment_type_id')
@@ -634,7 +653,10 @@ class PowerBiController extends Controller
                 );
 
             if ($request->filled('contact_id')) {
-                $query->where('ct.id', $request->input('contact_id'));
+                $query->where(function ($q) use ($request) {
+                    $q->where('bc.contact_id', $request->input('contact_id'))
+                      ->orWhere('d.contact_id', $request->input('contact_id'));
+                });
             }
 
             $data = $query->orderBy('c.id', 'DESC')->get();
