@@ -545,11 +545,16 @@ class PowerBiController extends Controller
                 ->whereNotNull('c.sale_id')
                 ->leftJoin('deal as d', 'd.id', '=', 'c.sale_id')
                 ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->leftJoin('productcontracts as pc', 'pc.sellercontract_id', '=', 'sc.id')
+                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
+                ->leftJoin('productcontracts as pc', function ($join) {
+                    $join->on('pc.sellercontract_id', '=', 'sc.id')
+                         ->orOn('pc.buyercontract_id', '=', 'bc.id');
+                })
                 ->leftJoin('products as p', 'p.id', '=', 'pc.product_id')
                 ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
                 ->leftJoin('contacts as ct', function ($join) {
                     $join->on('ct.id', '=', 'sc.contact_id')
+                         ->orOn('ct.id', '=', 'bc.contact_id')
                          ->orOn('ct.id', '=', 'd.contact_id');
                 })
                 ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
@@ -583,6 +588,7 @@ class PowerBiController extends Controller
             if ($request->filled('contact_id')) {
                 $query->where(function ($q) use ($request) {
                     $q->where('sc.contact_id', $request->input('contact_id'))
+                      ->orWhere('bc.contact_id', $request->input('contact_id'))
                       ->orWhere('d.contact_id', $request->input('contact_id'));
                 });
             }
@@ -609,11 +615,16 @@ class PowerBiController extends Controller
                 ->whereNotNull('c.purchase_id')
                 ->leftJoin('deal as d', 'd.id', '=', 'c.purchase_id')
                 ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->leftJoin('productcontracts as pc', 'pc.buyercontract_id', '=', 'bc.id')
+                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
+                ->leftJoin('productcontracts as pc', function ($join) {
+                    $join->on('pc.buyercontract_id', '=', 'bc.id')
+                         ->orOn('pc.sellercontract_id', '=', 'sc.id');
+                })
                 ->leftJoin('products as p', 'p.id', '=', 'pc.product_id')
                 ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
                 ->leftJoin('contacts as ct', function ($join) {
                     $join->on('ct.id', '=', 'bc.contact_id')
+                         ->orOn('ct.id', '=', 'sc.contact_id')
                          ->orOn('ct.id', '=', 'd.contact_id');
                 })
                 ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
@@ -647,6 +658,7 @@ class PowerBiController extends Controller
             if ($request->filled('contact_id')) {
                 $query->where(function ($q) use ($request) {
                     $q->where('bc.contact_id', $request->input('contact_id'))
+                      ->orWhere('sc.contact_id', $request->input('contact_id'))
                       ->orWhere('d.contact_id', $request->input('contact_id'));
                 });
             }
