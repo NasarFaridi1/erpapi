@@ -534,4 +534,120 @@ class PowerBiController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Comprehensive Sales API: Fetches all sales contracts with all relationships resolved to readable names.
+     */
+    public function allSales(Request $request)
+    {
+        try {
+            $query = DB::table('contracts as c')
+                ->join('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
+                ->join('productcontracts as pc', 'pc.sellercontract_id', '=', 'sc.id')
+                ->join('products as p', 'p.id', '=', 'pc.product_id')
+                ->join('deal as d', 'd.id', '=', 'c.sale_id')
+                ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
+                ->join('contacts as ct', 'ct.id', '=', 'sc.contact_id')
+                ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
+                ->leftJoin('companies as client_cmp', 'client_cmp.id', '=', 'ct.company_id')
+                ->leftJoin('payment_type as pt', 'pt.id', '=', 'd.payment_type_id')
+                ->leftJoin('payment_terms_type as ptt', 'ptt.id', '=', 'd.payment_terms_type_id')
+                ->select(
+                    'c.id as contract_id',
+                    'c.order_code',
+                    'c.sales_invoice_number',
+                    'c.created_at as contract_date',
+                    'ct.name as customer_name',
+                    'ct.code_meta as customer_code',
+                    'co.name as country',
+                    'client_cmp.name as customer_company',
+                    'cmp.name as meta_company',
+                    'p.name as product_name',
+                    'pc.quantity',
+                    'pc.premium',
+                    'pc.rate',
+                    'pc.total_price',
+                    'ct.currency',
+                    'pt.description as payment_type',
+                    'ptt.description as payment_terms',
+                    'pc.start_date',
+                    'pc.end_date',
+                    'ct.registration as customer_registration',
+                    'ct.vat as customer_vat',
+                    'ct.website as customer_website'
+                );
+
+            if ($request->filled('contact_id')) {
+                $query->where('ct.id', $request->input('contact_id'));
+            }
+
+            $data = $query->orderBy('c.id', 'DESC')->get();
+
+            return response()->json($this->formatForTable($data));
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch sales report',
+                'details' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Comprehensive Purchases API: Fetches all purchase contracts with all relationships resolved to readable names.
+     */
+    public function allPurchases(Request $request)
+    {
+        try {
+            $query = DB::table('contracts as c')
+                ->join('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
+                ->join('productcontracts as pc', 'pc.buyercontract_id', '=', 'bc.id')
+                ->join('products as p', 'p.id', '=', 'pc.product_id')
+                ->join('deal as d', 'd.id', '=', 'c.purchase_id')
+                ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
+                ->join('contacts as ct', 'ct.id', '=', 'bc.contact_id')
+                ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
+                ->leftJoin('companies as supplier_cmp', 'supplier_cmp.id', '=', 'ct.company_id')
+                ->leftJoin('payment_type as pt', 'pt.id', '=', 'd.payment_type_id')
+                ->leftJoin('payment_terms_type as ptt', 'ptt.id', '=', 'd.payment_terms_type_id')
+                ->select(
+                    'c.id as contract_id',
+                    'c.order_code',
+                    'c.sales_invoice_number',
+                    'c.created_at as contract_date',
+                    'ct.name as supplier_name',
+                    'ct.code_meta as supplier_code',
+                    'co.name as country',
+                    'supplier_cmp.name as supplier_company',
+                    'cmp.name as meta_company',
+                    'p.name as product_name',
+                    'pc.quantity',
+                    'pc.premium',
+                    'pc.rate',
+                    'pc.total_price',
+                    'ct.currency',
+                    'pt.description as payment_type',
+                    'ptt.description as payment_terms',
+                    'pc.start_date',
+                    'pc.end_date',
+                    'ct.registration as supplier_registration',
+                    'ct.vat as supplier_vat',
+                    'ct.website as supplier_website'
+                );
+
+            if ($request->filled('contact_id')) {
+                $query->where('ct.id', $request->input('contact_id'));
+            }
+
+            $data = $query->orderBy('c.id', 'DESC')->get();
+
+            return response()->json($this->formatForTable($data));
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch purchases report',
+                'details' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

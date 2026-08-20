@@ -1,6 +1,6 @@
 # ERP Power BI API Reference Documentation
 
-This document provides complete documentation for all **16 API Endpoints** in the ERP System.
+This document provides complete documentation for all ERP Reporting API Endpoints.
 
 ---
 
@@ -22,7 +22,87 @@ Accept: application/json
 
 ---
 
-## 1. Authentication API
+## 🌟 1. Comprehensive Sales & Purchases APIs (Fully Resolved Relationships)
+
+### `GET /api/powerbi/sales` (or `/api/powerbi/all-sales`)
+Fetches all sales contracts and line items with **all foreign key IDs resolved into readable names** (Country name, Customer company, Meta company, Customer name, Product name, Payment type, Payment terms, Currency).
+
+* **Method**: `GET`
+* **URL**: `https://metaerpapi.aideepseek.uk/api/powerbi/sales`
+* **Optional Query Parameters**:
+  - `contact_id`: Filter by specific customer/contact ID (e.g. `?contact_id=14`)
+* **Data Schema Returned**:
+  ```json
+  [
+    {
+      "contract_id": 105,
+      "order_code": "ORD-2026-001",
+      "sales_invoice_number": "INV-2026-99",
+      "contract_date": "2026-08-15 10:30:00",
+      "customer_name": "Acme Global Trading",
+      "customer_code": "CUST-009",
+      "country": "United States",
+      "customer_company": "Acme Group LLC",
+      "meta_company": "META ERP Solutions Ltd",
+      "product_name": "Refined Palm Oil Grade A",
+      "quantity": "500.00",
+      "premium": "15.00",
+      "rate": "1250.00",
+      "total_price": "625000.00",
+      "currency": "USD",
+      "payment_type": "Letter of Credit (LC)",
+      "payment_terms": "30 Days Net",
+      "start_date": "2026-09-01",
+      "end_date": "2026-09-30",
+      "customer_registration": "REG-US-987654",
+      "customer_vat": "VAT-US-112233",
+      "customer_website": "https://acmeglobal.example.com"
+    }
+  ]
+  ```
+
+---
+
+### `GET /api/powerbi/purchases` (or `/api/powerbi/all-purchases`)
+Fetches all purchase contracts and line items with **all foreign key IDs resolved into readable names** (Country name, Supplier company, Meta company, Supplier name, Product name, Payment type, Payment terms, Currency).
+
+* **Method**: `GET`
+* **URL**: `https://metaerpapi.aideepseek.uk/api/powerbi/purchases`
+* **Optional Query Parameters**:
+  - `contact_id`: Filter by specific supplier/contact ID (e.g. `?contact_id=14`)
+* **Data Schema Returned**:
+  ```json
+  [
+    {
+      "contract_id": 102,
+      "order_code": "ORD-PUR-2026-005",
+      "sales_invoice_number": "PINV-2026-10",
+      "contract_date": "2026-08-14 09:15:00",
+      "supplier_name": "Agro Export Commodities",
+      "supplier_code": "SUPP-004",
+      "country": "Brazil",
+      "supplier_company": "Agro Brazil S.A.",
+      "meta_company": "META ERP Solutions Ltd",
+      "product_name": "Crude Palm Oil",
+      "quantity": "1000.00",
+      "premium": "10.00",
+      "rate": "1100.00",
+      "total_price": "1100000.00",
+      "currency": "USD",
+      "payment_type": "Telegraphic Transfer (TT)",
+      "payment_terms": "Cash on Delivery (COD)",
+      "start_date": "2026-09-10",
+      "end_date": "2026-10-10",
+      "supplier_registration": "BR-CNPJ-998877",
+      "supplier_vat": "VAT-BR-556677",
+      "supplier_website": "https://agroexport.example.com"
+    }
+  ]
+  ```
+
+---
+
+## 2. Authentication API
 
 ### `POST /api/oauth/token`
 Generates a signed, 1-hour OAuth 2.0 Bearer JWT Access Token.
@@ -45,16 +125,14 @@ Generates a signed, 1-hour OAuth 2.0 Bearer JWT Access Token.
 
 ---
 
-## 2. Master Data APIs
+## 3. Master Data APIs
 
 ### `GET /api/powerbi/contacts`
 Fetches all ERP contacts/clients list.
 
 * **Method**: `GET`
 * **URL**: `https://metaerpapi.aideepseek.uk/api/powerbi/contacts`
-* **Parameters to Pass**: None
-* **Data Returned**: List of contacts with fields:
-  `id`, `code_meta`, `name`, `company_id`, `country_id`, `registration`, `vat`, `currency`, `website`, `active`, `initials`, `eori_number`, `language_id`.
+* **Data Returned**: List of contacts (`id`, `code_meta`, `name`, `company_id`, `country_id`, `registration`, `vat`, `currency`, `website`, etc.).
 
 ---
 
@@ -63,8 +141,6 @@ Fetches all country records.
 
 * **Method**: `GET`
 * **URL**: `https://metaerpapi.aideepseek.uk/api/powerbi/countries`
-* **Parameters to Pass**: None
-* **Data Returned**: List of countries: `id`, `name`, `code`, `currency`, etc.
 
 ---
 
@@ -73,8 +149,6 @@ Fetches all product master records.
 
 * **Method**: `GET`
 * **URL**: `https://metaerpapi.aideepseek.uk/api/powerbi/products`
-* **Parameters to Pass**: None
-* **Data Returned**: List of products: `id`, `name`, `code`, `unit_price`, `category_id`, etc.
 
 ---
 
@@ -83,133 +157,55 @@ Fetches all company records.
 
 * **Method**: `GET`
 * **URL**: `https://metaerpapi.aideepseek.uk/api/powerbi/companies`
-* **Parameters to Pass**: None
-* **Data Returned**: List of companies: `id`, `name`, `registration_number`, `tax_id`, etc.
 
 ---
 
 ### `GET /api/powerbi/contracts`
-Fetches all contracts list.
+Fetches all raw contracts list.
 
 * **Method**: `GET`
 * **URL**: `https://metaerpapi.aideepseek.uk/api/powerbi/contracts`
-* **Parameters to Pass**: None
-* **Data Returned**: List of contracts: `id`, `order_code`, `sales_invoice_number`, `purchase_id`, `sale_id`, `created_at`, etc.
 
 ---
 
-## 3. Contact-Specific Detail APIs
+## 4. Single Contact Reporting APIs
 
 ### `GET /api/powerbi/contact/{id}`
 Fetches detailed profile information for a single contact by ID.
-
-* **Method**: `GET`
 * **URL Example**: `https://metaerpapi.aideepseek.uk/api/powerbi/contact/14`
-* **Parameters to Pass**: `{id}` in URL path (e.g. `14`).
-* **Data Returned**: Single contact record object:
-  `contact_id`, `contact_name`, `code_meta`, `country`, `company_name`, `registration`, `vat`, `currency`, `website`.
-
----
 
 ### `GET /api/powerbi/contact/{id}/purchases`
-Fetches all purchase contracts and line items for a specific contact.
-
-* **Method**: `GET`
+Fetches purchases for a single contact.
 * **URL Example**: `https://metaerpapi.aideepseek.uk/api/powerbi/contact/14/purchases`
-* **Parameters to Pass**: `{id}` in URL path.
-* **Data Returned**: List of purchase transactions:
-  `id`, `order_code`, `sales_invoice_number`, `contact_id`, `contact_name`, `meta_company`, `product`, `quantity`, `premium`, `rate`, `total_price`, `payment_type`, `payment_terms`, `start_date`, `end_date`.
-
----
 
 ### `GET /api/powerbi/contact/{id}/sales`
-Fetches all sales contracts and line items for a specific contact.
-
-* **Method**: `GET`
+Fetches sales for a single contact.
 * **URL Example**: `https://metaerpapi.aideepseek.uk/api/powerbi/contact/14/sales`
-* **Parameters to Pass**: `{id}` in URL path.
-* **Data Returned**: List of sales transactions:
-  `id`, `order_code`, `sales_invoice_number`, `contact_id`, `contact_name`, `meta_company`, `product`, `quantity`, `premium`, `rate`, `total_price`, `payment_type`, `payment_terms`, `start_date`, `end_date`.
-
----
 
 ### `GET /api/powerbi/contact/{id}/buying-payment-terms`
-Fetches aggregated buying contract metrics grouped by payment terms for a contact.
-
-* **Method**: `GET`
+Fetches buying payment terms metrics for a single contact.
 * **URL Example**: `https://metaerpapi.aideepseek.uk/api/powerbi/contact/14/buying-payment-terms`
-* **Parameters to Pass**: `{id}` in URL path.
-* **Data Returned**: Grouped payment terms list:
-  `payment_type`, `payment_terms`, `total_contracts`, `total_quantity`, `total_value`.
-
----
 
 ### `GET /api/powerbi/contact/{id}/selling-payment-terms`
-Fetches aggregated selling contract metrics grouped by payment terms for a contact.
-
-* **Method**: `GET`
+Fetches selling payment terms metrics for a single contact.
 * **URL Example**: `https://metaerpapi.aideepseek.uk/api/powerbi/contact/14/selling-payment-terms`
-* **Parameters to Pass**: `{id}` in URL path.
-* **Data Returned**: Grouped payment terms list:
-  `payment_type`, `payment_terms`, `total_contracts`, `total_quantity`, `total_value`.
-
----
 
 ### `GET /api/powerbi/contact/{id}/product-buying-country`
-Fetches product buying breakdown by destination country for a contact.
-
-* **Method**: `GET`
+Fetches product buying by country for a single contact.
 * **URL Example**: `https://metaerpapi.aideepseek.uk/api/powerbi/contact/14/product-buying-country`
-* **Parameters to Pass**: `{id}` in URL path.
-* **Data Returned**: Product buying breakdown list:
-  `country`, `product_id`, `product`, `total_contracts`, `total_quantity`, `total_value`.
-
----
 
 ### `GET /api/powerbi/contact/{id}/product-selling-country`
-Fetches product selling breakdown by country for a contact.
-
-* **Method**: `GET`
+Fetches product selling by country for a single contact.
 * **URL Example**: `https://metaerpapi.aideepseek.uk/api/powerbi/contact/14/product-selling-country`
-* **Parameters to Pass**: `{id}` in URL path.
-* **Data Returned**: Product selling breakdown list:
-  `country`, `meta_company`, `product_id`, `product`, `total_contracts`, `total_quantity`, `total_value`.
-
----
 
 ### `GET /api/powerbi/contact/{id}/credit-debit-notes`
-Fetches all credit and debit notes associated with a contact.
-
-* **Method**: `GET`
+Fetches credit/debit notes for a single contact.
 * **URL Example**: `https://metaerpapi.aideepseek.uk/api/powerbi/contact/14/credit-debit-notes`
-* **Parameters to Pass**: `{id}` in URL path.
-* **Data Returned**: List of credit/debit notes:
-  `id`, `note_number`, `note_type`, `note_date`, `status`, `order_code`, `contact_id`, `contact_name`, `company_name`, `product`, `quantity`, `rate`, `amount`, `currency`.
-
----
 
 ### `GET /api/powerbi/contact/{id}/dashboard-summary`
-Fetches aggregated financial KPI metrics (total buy value, total sell value, revenue, top product, top country, credit/debit note counts) for a contact.
-
-* **Method**: `GET`
+Fetches financial KPI metrics for a single contact.
 * **URL Example**: `https://metaerpapi.aideepseek.uk/api/powerbi/contact/14/dashboard-summary`
-* **Parameters to Pass**: `{id}` in URL path.
-* **Data Returned**: Summary KPI object:
-  - `buying`: `buying_contracts`, `buying_quantity`, `buying_value`
-  - `selling`: `selling_contracts`, `selling_quantity`, `selling_value`
-  - `credit_notes`: total credit notes count
-  - `debit_notes`: total debit notes count
-  - `revenue`: calculated revenue (`selling_value - buying_value`)
-  - `top_product`: top product name
-  - `top_country`: top country name
-
----
 
 ### `GET /api/powerbi/powerbi/contact/{id}/dashboard`
-Fetches full combined dashboard data (profile + summary + purchases + sales + payment terms + notes) in a single request.
-
-* **Method**: `GET`
+Fetches combined dashboard dataset for a single contact.
 * **URL Example**: `https://metaerpapi.aideepseek.uk/api/powerbi/powerbi/contact/14/dashboard`
-* **Parameters to Pass**: `{id}` in URL path.
-* **Data Returned**: Complete dashboard dataset:
-  `contact_information`, `dashboard_summary`, `purchasing_side`, `sales_side`, `buying_payment_terms`, `selling_payment_terms`, `product_buying_country`, `product_selling_country`, `credit_debit_notes`.
