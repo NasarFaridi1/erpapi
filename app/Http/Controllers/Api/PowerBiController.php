@@ -545,11 +545,7 @@ class PowerBiController extends Controller
                 ->whereNotNull('c.sale_id')
                 ->leftJoin('deal as d', 'd.id', '=', 'c.sale_id')
                 ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->leftJoin('productcontracts as pc', function ($join) {
-                    $join->on('pc.sellercontract_id', '=', 'sc.id')
-                         ->orOn('pc.buyercontract_id', '=', 'bc.id');
-                })
+                ->leftJoin('productcontracts as pc', 'pc.sellercontract_id', '=', 'sc.id')
                 ->leftJoin('products as p', 'p.id', '=', 'pc.product_id')
                 ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
                 ->leftJoin('contacts as ct', function ($join) {
@@ -574,7 +570,7 @@ class PowerBiController extends Controller
                     'pc.premium',
                     'pc.rate',
                     'pc.total_price',
-                    'ct.currency',
+                    DB::raw("COALESCE(NULLIF(ct.currency, ''), 'USD') as currency"),
                     'pt.description as payment_type',
                     'ptt.description as payment_terms',
                     'pc.start_date',
@@ -613,11 +609,7 @@ class PowerBiController extends Controller
                 ->whereNotNull('c.purchase_id')
                 ->leftJoin('deal as d', 'd.id', '=', 'c.purchase_id')
                 ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->leftJoin('productcontracts as pc', function ($join) {
-                    $join->on('pc.buyercontract_id', '=', 'bc.id')
-                         ->orOn('pc.sellercontract_id', '=', 'sc.id');
-                })
+                ->leftJoin('productcontracts as pc', 'pc.buyercontract_id', '=', 'bc.id')
                 ->leftJoin('products as p', 'p.id', '=', 'pc.product_id')
                 ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
                 ->leftJoin('contacts as ct', function ($join) {
@@ -642,7 +634,7 @@ class PowerBiController extends Controller
                     'pc.premium',
                     'pc.rate',
                     'pc.total_price',
-                    'ct.currency',
+                    DB::raw("COALESCE(NULLIF(ct.currency, ''), 'USD') as currency"),
                     'pt.description as payment_type',
                     'ptt.description as payment_terms',
                     'pc.start_date',
