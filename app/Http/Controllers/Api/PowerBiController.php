@@ -31,10 +31,48 @@ class PowerBiController extends Controller
         return array_values($array);
     }
 
+    /**
+     * All Contracts with full relationships resolved (Supplier, Customer, Countries, Companies, Payment Terms)
+     */
     public function contracts()
     {
         try {
-            $contracts = DB::table('contracts')->get();
+            $contracts = DB::table('contracts as c')
+                ->leftJoin('deal as pd', 'pd.id', '=', 'c.purchase_id')
+                ->leftJoin('deal as sd', 'sd.id', '=', 'c.sale_id')
+                ->leftJoin('companies as p_cmp', 'p_cmp.id', '=', 'pd.meta_company_id')
+                ->leftJoin('companies as s_cmp', 's_cmp.id', '=', 'sd.meta_company_id')
+                ->leftJoin('contacts as p_ct', 'p_ct.id', '=', 'pd.contact_id')
+                ->leftJoin('contacts as s_ct', 's_ct.id', '=', 'sd.contact_id')
+                ->leftJoin('countries as p_co', 'p_co.id', '=', 'p_ct.country_id')
+                ->leftJoin('countries as s_co', 's_co.id', '=', 's_ct.country_id')
+                ->leftJoin('companies as p_client_cmp', 'p_client_cmp.id', '=', 'p_ct.company_id')
+                ->leftJoin('companies as s_client_cmp', 's_client_cmp.id', '=', 's_ct.company_id')
+                ->leftJoin('payment_type as p_pt', 'p_pt.id', '=', 'pd.payment_type_id')
+                ->leftJoin('payment_terms_type as p_ptt', 'p_ptt.id', '=', 'pd.payment_terms_type_id')
+                ->leftJoin('payment_type as s_pt', 's_pt.id', '=', 'sd.payment_type_id')
+                ->leftJoin('payment_terms_type as s_ptt', 's_ptt.id', '=', 'sd.payment_terms_type_id')
+                ->select(
+                    'c.id as contract_id',
+                    'c.order_code',
+                    'c.sales_invoice_number',
+                    'p_ct.name as supplier_name',
+                    'p_ct.code_meta as supplier_code',
+                    'p_co.name as supplier_country',
+                    'p_client_cmp.name as supplier_company',
+                    'p_cmp.name as purchase_meta_company',
+                    'p_pt.description as purchase_payment_type',
+                    'p_ptt.description as purchase_payment_terms',
+                    's_ct.name as customer_name',
+                    's_ct.code_meta as customer_code',
+                    's_co.name as customer_country',
+                    's_client_cmp.name as customer_company',
+                    's_cmp.name as sales_meta_company',
+                    's_pt.description as sales_payment_type',
+                    's_ptt.description as sales_payment_terms'
+                )
+                ->orderBy('c.id', 'DESC')
+                ->get();
 
             return response()->json($this->formatForTable($contracts), 200);
 
@@ -46,10 +84,31 @@ class PowerBiController extends Controller
         }
     }
 
+    /**
+     * All Contacts with full relationships resolved (Country Name, Company Name)
+     */
     public function contacts()
     {
         try {
-            $contacts = DB::table('contacts')->get();
+            $contacts = DB::table('contacts as c')
+                ->leftJoin('countries as co', 'co.id', '=', 'c.country_id')
+                ->leftJoin('companies as cp', 'cp.id', '=', 'c.company_id')
+                ->select(
+                    'c.id as contact_id',
+                    'c.code_meta as contact_code',
+                    'c.name as contact_name',
+                    'co.name as country',
+                    'cp.name as company_name',
+                    'c.registration',
+                    'c.vat',
+                    DB::raw("COALESCE(NULLIF(c.currency, ''), 'USD') as currency"),
+                    'c.website',
+                    'c.active',
+                    'c.initials',
+                    'c.eori_number'
+                )
+                ->orderBy('c.id', 'ASC')
+                ->get();
 
             return response()->json($this->formatForTable($contacts));
 
@@ -61,6 +120,9 @@ class PowerBiController extends Controller
         }
     }
 
+    /**
+     * Single Contact Information with Country & Company Names resolved
+     */
     public function contactInformation($contactId)
     {
         try {
@@ -69,13 +131,13 @@ class PowerBiController extends Controller
                 ->leftJoin('companies as cp', 'cp.id', '=', 'c.company_id')
                 ->select(
                     'c.id as contact_id',
+                    'c.code_meta as contact_code',
                     'c.name as contact_name',
-                    'c.code_meta',
                     'co.name as country',
                     'cp.name as company_name',
                     'c.registration',
                     'c.vat',
-                    'c.currency',
+                    DB::raw("COALESCE(NULLIF(c.currency, ''), 'USD') as currency"),
                     'c.website'
                 )
                 ->where('c.id', $contactId)
@@ -95,90 +157,143 @@ class PowerBiController extends Controller
         }
     }
 
+    /**
+     * Purchases by Contact ID with Country, Supplier Company, Meta Company & Product Names resolved
+     */
     public function purchases($contactId)
     {
         try {
             $data = DB::table('contracts as c')
-                ->join('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->join('productcontracts as pc', 'pc.buyercontract_id', '=', 'bc.id')
-                ->join('products as p', 'p.id', '=', 'pc.product_id')
-                ->join('deal as d', 'd.id', '=', 'c.purchase_id')
-                ->join('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
-                ->join('contacts as ct', 'ct.id', '=', 'bc.contact_id')
+                ->whereNotNull('c.purchase_id')
+                ->leftJoin('deal as d', 'd.id', '=', 'c.purchase_id')
+                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
+                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
+                ->leftJoin('productcontracts as pc', function ($join) {
+                    $join->on('pc.buyercontract_id', '=', 'bc.id')
+                         ->orOn('pc.sellercontract_id', '=', 'sc.id');
+                })
+                ->leftJoin('products as p', 'p.id', '=', 'pc.product_id')
+                ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
+                ->leftJoin('contacts as ct', function ($join) {
+                    $join->on('ct.id', '=', 'bc.contact_id')
+                         ->orOn('ct.id', '=', 'sc.contact_id')
+                         ->orOn('ct.id', '=', 'd.contact_id');
+                })
+                ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
+                ->leftJoin('companies as supplier_cmp', 'supplier_cmp.id', '=', 'ct.company_id')
                 ->leftJoin('payment_type as pt', 'pt.id', '=', 'd.payment_type_id')
                 ->leftJoin('payment_terms_type as ptt', 'ptt.id', '=', 'd.payment_terms_type_id')
+                ->where(function ($q) use ($contactId) {
+                    $q->where('bc.contact_id', $contactId)
+                      ->orWhere('sc.contact_id', $contactId)
+                      ->orWhere('d.contact_id', $contactId);
+                })
                 ->select(
-                    'c.id',
+                    'c.id as contract_id',
                     'c.order_code',
                     'c.sales_invoice_number',
-                    'ct.id as contact_id',
-                    'ct.name as contact_name',
+                    'ct.name as supplier_name',
+                    'ct.code_meta as supplier_code',
+                    'co.name as country',
+                    'supplier_cmp.name as supplier_company',
                     'cmp.name as meta_company',
-                    'p.name as product',
+                    'p.name as product_name',
                     'pc.quantity',
                     'pc.premium',
                     'pc.rate',
                     'pc.total_price',
+                    DB::raw("COALESCE(NULLIF(ct.currency, ''), 'USD') as currency"),
                     'pt.description as payment_type',
                     'ptt.description as payment_terms',
                     'pc.start_date',
-                    'pc.end_date'
+                    'pc.end_date',
+                    'ct.registration as supplier_registration',
+                    'ct.vat as supplier_vat',
+                    'ct.website as supplier_website'
                 )
-                ->where('d.contact_id', $contactId)
+                ->orderBy('c.id', 'DESC')
                 ->get();
 
             return response()->json($this->formatForTable($data));
 
         } catch (\Exception $e) {
             return response()->json([
-                'error' => 'Error',
+                'error' => 'Failed to fetch purchases',
                 'details' => $e->getMessage()
             ], 500);
         }
     }
 
+    /**
+     * Sales by Contact ID with Country, Customer Company, Meta Company & Product Names resolved
+     */
     public function sales($contactId)
     {
         try {
             $data = DB::table('contracts as c')
-                ->join('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->join('productcontracts as pc', 'pc.sellercontract_id', '=', 'sc.id')
-                ->join('products as p', 'p.id', '=', 'pc.product_id')
-                ->join('deal as d', 'd.id', '=', 'c.sale_id')
-                ->join('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
-                ->join('contacts as ct', 'ct.id', '=', 'sc.contact_id')
+                ->whereNotNull('c.sale_id')
+                ->leftJoin('deal as d', 'd.id', '=', 'c.sale_id')
+                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
+                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
+                ->leftJoin('productcontracts as pc', function ($join) {
+                    $join->on('pc.sellercontract_id', '=', 'sc.id')
+                         ->orOn('pc.buyercontract_id', '=', 'bc.id');
+                })
+                ->leftJoin('products as p', 'p.id', '=', 'pc.product_id')
+                ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
+                ->leftJoin('contacts as ct', function ($join) {
+                    $join->on('ct.id', '=', 'sc.contact_id')
+                         ->orOn('ct.id', '=', 'bc.contact_id')
+                         ->orOn('ct.id', '=', 'd.contact_id');
+                })
+                ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
+                ->leftJoin('companies as client_cmp', 'client_cmp.id', '=', 'ct.company_id')
                 ->leftJoin('payment_type as pt', 'pt.id', '=', 'd.payment_type_id')
                 ->leftJoin('payment_terms_type as ptt', 'ptt.id', '=', 'd.payment_terms_type_id')
+                ->where(function ($q) use ($contactId) {
+                    $q->where('sc.contact_id', $contactId)
+                      ->orWhere('bc.contact_id', $contactId)
+                      ->orWhere('d.contact_id', $contactId);
+                })
                 ->select(
-                    'c.id',
+                    'c.id as contract_id',
                     'c.order_code',
                     'c.sales_invoice_number',
-                    'ct.id as contact_id',
-                    'ct.name as contact_name',
+                    'ct.name as customer_name',
+                    'ct.code_meta as customer_code',
+                    'co.name as country',
+                    'client_cmp.name as customer_company',
                     'cmp.name as meta_company',
-                    'p.name as product',
+                    'p.name as product_name',
                     'pc.quantity',
                     'pc.premium',
                     'pc.rate',
                     'pc.total_price',
+                    DB::raw("COALESCE(NULLIF(ct.currency, ''), 'USD') as currency"),
                     'pt.description as payment_type',
                     'ptt.description as payment_terms',
                     'pc.start_date',
-                    'pc.end_date'
+                    'pc.end_date',
+                    'ct.registration as customer_registration',
+                    'ct.vat as customer_vat',
+                    'ct.website as customer_website'
                 )
-                ->where('d.contact_id', $contactId)
+                ->orderBy('c.id', 'DESC')
                 ->get();
 
             return response()->json($this->formatForTable($data));
 
         } catch (\Exception $e) {
             return response()->json([
-                'error' => 'Error',
+                'error' => 'Failed to fetch sales',
                 'details' => $e->getMessage()
             ], 500);
         }
     }
 
+    /**
+     * Buying Payment Terms with Payment Type & Terms Descriptions
+     */
     public function buyingPaymentTerms($contactId)
     {
         try {
@@ -186,17 +301,24 @@ class PowerBiController extends Controller
                 ->join('deal as d', 'd.id', '=', 'c.purchase_id')
                 ->leftJoin('payment_type as pt', 'pt.id', '=', 'd.payment_type_id')
                 ->leftJoin('payment_terms_type as ptt', 'ptt.id', '=', 'd.payment_terms_type_id')
-                ->join('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->join('productcontracts as pc', 'pc.buyercontract_id', '=', 'bc.id')
-                ->join('products as p', 'p.id', '=', 'pc.product_id')
+                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
+                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
+                ->leftJoin('productcontracts as pc', function ($join) {
+                    $join->on('pc.buyercontract_id', '=', 'bc.id')
+                         ->orOn('pc.sellercontract_id', '=', 'sc.id');
+                })
                 ->select(
                     'pt.description as payment_type',
                     'ptt.description as payment_terms',
                     DB::raw('COUNT(DISTINCT c.id) as total_contracts'),
-                    DB::raw('SUM(pc.quantity) as total_quantity'),
-                    DB::raw('SUM(pc.total_price) as total_value')
+                    DB::raw('COALESCE(SUM(pc.quantity), 0) as total_quantity'),
+                    DB::raw('COALESCE(SUM(pc.total_price), 0) as total_value')
                 )
-                ->where('d.contact_id', $contactId)
+                ->where(function ($q) use ($contactId) {
+                    $q->where('d.contact_id', $contactId)
+                      ->orWhere('bc.contact_id', $contactId)
+                      ->orWhere('sc.contact_id', $contactId);
+                })
                 ->groupBy('pt.description', 'ptt.description')
                 ->orderBy('total_value', 'DESC')
                 ->get();
@@ -211,6 +333,9 @@ class PowerBiController extends Controller
         }
     }
 
+    /**
+     * Selling Payment Terms with Payment Type & Terms Descriptions
+     */
     public function sellingPaymentTerms($contactId)
     {
         try {
@@ -218,17 +343,24 @@ class PowerBiController extends Controller
                 ->join('deal as d', 'd.id', '=', 'c.sale_id')
                 ->leftJoin('payment_type as pt', 'pt.id', '=', 'd.payment_type_id')
                 ->leftJoin('payment_terms_type as ptt', 'ptt.id', '=', 'd.payment_terms_type_id')
-                ->join('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->join('productcontracts as pc', 'pc.sellercontract_id', '=', 'sc.id')
-                ->join('products as p', 'p.id', '=', 'pc.product_id')
+                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
+                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
+                ->leftJoin('productcontracts as pc', function ($join) {
+                    $join->on('pc.sellercontract_id', '=', 'sc.id')
+                         ->orOn('pc.buyercontract_id', '=', 'bc.id');
+                })
                 ->select(
                     'pt.description as payment_type',
                     'ptt.description as payment_terms',
                     DB::raw('COUNT(DISTINCT c.id) as total_contracts'),
-                    DB::raw('SUM(pc.quantity) as total_quantity'),
-                    DB::raw('SUM(pc.total_price) as total_value')
+                    DB::raw('COALESCE(SUM(pc.quantity), 0) as total_quantity'),
+                    DB::raw('COALESCE(SUM(pc.total_price), 0) as total_value')
                 )
-                ->where('d.contact_id', $contactId)
+                ->where(function ($q) use ($contactId) {
+                    $q->where('d.contact_id', $contactId)
+                      ->orWhere('sc.contact_id', $contactId)
+                      ->orWhere('bc.contact_id', $contactId);
+                })
                 ->groupBy('pt.description', 'ptt.description')
                 ->orderByDesc('total_value')
                 ->get();
@@ -243,26 +375,41 @@ class PowerBiController extends Controller
         }
     }
 
+    /**
+     * Product Buying Country with Country Name & Product Name
+     */
     public function productBuyingCountry($contactId)
     {
         try {
             $data = DB::table('contracts as c')
                 ->join('deal as d', 'd.id', '=', 'c.purchase_id')
-                ->join('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->join('productcontracts as pc', 'pc.buyercontract_id', '=', 'bc.id')
-                ->join('products as p', 'p.id', '=', 'pc.product_id')
-                ->join('contacts as ct', 'ct.id', '=', 'd.contact_id')
+                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
+                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
+                ->leftJoin('productcontracts as pc', function ($join) {
+                    $join->on('pc.buyercontract_id', '=', 'bc.id')
+                         ->orOn('pc.sellercontract_id', '=', 'sc.id');
+                })
+                ->leftJoin('products as p', 'p.id', '=', 'pc.product_id')
+                ->leftJoin('contacts as ct', function ($join) {
+                    $join->on('ct.id', '=', 'bc.contact_id')
+                         ->orOn('ct.id', '=', 'sc.contact_id')
+                         ->orOn('ct.id', '=', 'd.contact_id');
+                })
                 ->leftJoin('countries as country', 'country.id', '=', 'ct.country_id')
                 ->select(
                     'country.name as country',
-                    'p.id as product_id',
-                    'p.name as product',
+                    'p.name as product_name',
                     DB::raw('COUNT(DISTINCT c.id) as total_contracts'),
-                    DB::raw('SUM(pc.quantity) as total_quantity'),
-                    DB::raw('SUM(pc.total_price) as total_value')
+                    DB::raw('COALESCE(SUM(pc.quantity), 0) as total_quantity'),
+                    DB::raw('COALESCE(SUM(pc.total_price), 0) as total_value')
                 )
-                ->where('d.contact_id', $contactId)
-                ->groupBy('country.name', 'p.id', 'p.name')
+                ->where(function ($q) use ($contactId) {
+                    $q->where('d.contact_id', $contactId)
+                      ->orWhere('bc.contact_id', $contactId)
+                      ->orWhere('sc.contact_id', $contactId);
+                })
+                ->whereNotNull('country.name')
+                ->groupBy('country.name', 'p.name')
                 ->orderByDesc('total_quantity')
                 ->get();
 
@@ -276,28 +423,43 @@ class PowerBiController extends Controller
         }
     }
 
+    /**
+     * Product Selling Country with Country Name, Meta Company Name & Product Name
+     */
     public function productSellingCountry($contactId)
     {
         try {
             $data = DB::table('contracts as c')
                 ->join('deal as d', 'd.id', '=', 'c.sale_id')
-                ->join('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->join('productcontracts as pc', 'pc.sellercontract_id', '=', 'sc.id')
-                ->join('products as p', 'p.id', '=', 'pc.product_id')
-                ->join('contacts as ct', 'ct.id', '=', 'd.contact_id')
+                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
+                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
+                ->leftJoin('productcontracts as pc', function ($join) {
+                    $join->on('pc.sellercontract_id', '=', 'sc.id')
+                         ->orOn('pc.buyercontract_id', '=', 'bc.id');
+                })
+                ->leftJoin('products as p', 'p.id', '=', 'pc.product_id')
+                ->leftJoin('contacts as ct', function ($join) {
+                    $join->on('ct.id', '=', 'sc.contact_id')
+                         ->orOn('ct.id', '=', 'bc.contact_id')
+                         ->orOn('ct.id', '=', 'd.contact_id');
+                })
                 ->leftJoin('countries as country', 'country.id', '=', 'ct.country_id')
                 ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
                 ->select(
                     'country.name as country',
                     'cmp.name as meta_company',
-                    'p.id as product_id',
-                    'p.name as product',
+                    'p.name as product_name',
                     DB::raw('COUNT(DISTINCT c.id) as total_contracts'),
-                    DB::raw('SUM(pc.quantity) as total_quantity'),
-                    DB::raw('SUM(pc.total_price) as total_value')
+                    DB::raw('COALESCE(SUM(pc.quantity), 0) as total_quantity'),
+                    DB::raw('COALESCE(SUM(pc.total_price), 0) as total_value')
                 )
-                ->where('d.contact_id', $contactId)
-                ->groupBy('country.name', 'cmp.name', 'p.id', 'p.name')
+                ->where(function ($q) use ($contactId) {
+                    $q->where('d.contact_id', $contactId)
+                      ->orWhere('sc.contact_id', $contactId)
+                      ->orWhere('bc.contact_id', $contactId);
+                })
+                ->whereNotNull('country.name')
+                ->groupBy('country.name', 'cmp.name', 'p.name')
                 ->orderByDesc('total_quantity')
                 ->get();
 
@@ -311,10 +473,16 @@ class PowerBiController extends Controller
         }
     }
 
+    /**
+     * All Countries
+     */
     public function countries()
     {
         try {
-            $countries = DB::table('countries')->get();
+            $countries = DB::table('countries')
+                ->select('id as country_id', 'name as country_name', 'code', 'currency')
+                ->orderBy('name', 'ASC')
+                ->get();
 
             return response()->json($this->formatForTable($countries));
 
@@ -326,6 +494,9 @@ class PowerBiController extends Controller
         }
     }
 
+    /**
+     * Credit/Debit Notes by Contact ID with Country, Company, Product & Currency Names resolved
+     */
     public function creditDebitNotes($contactId)
     {
         try {
@@ -333,24 +504,26 @@ class PowerBiController extends Controller
                 ->join('detached_note_detail as dnd', 'dnd.detached_note_id', '=', 'dn.id')
                 ->leftJoin('contracts as c', 'c.id', '=', 'dn.contract_id')
                 ->leftJoin('contacts as ct', 'ct.id', '=', 'dn.contact_id')
+                ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
                 ->leftJoin('companies as cmp', 'cmp.id', '=', 'ct.company_id')
                 ->leftJoin('products as p', 'p.id', '=', 'dnd.product_id')
                 ->leftJoin('currency as cur', 'cur.id', '=', 'dn.currency_id')
                 ->select(
-                    'dn.id',
+                    'dn.id as note_id',
                     'dn.note_number',
                     'dn.note_type',
                     'dn.note_date',
                     'dn.status',
                     'c.order_code',
-                    'ct.id as contact_id',
                     'ct.name as contact_name',
+                    'ct.code_meta as contact_code',
+                    'co.name as country',
                     'cmp.name as company_name',
-                    'p.name as product',
+                    'p.name as product_name',
                     'dnd.quantity',
                     'dnd.rate',
                     'dnd.amount',
-                    'cur.code as currency'
+                    DB::raw("COALESCE(cur.code, ct.currency, 'USD') as currency")
                 )
                 ->where('ct.id', $contactId)
                 ->orderBy('dn.note_date', 'DESC')
@@ -366,30 +539,97 @@ class PowerBiController extends Controller
         }
     }
 
+    /**
+     * All Credit/Debit Notes across all contacts with fully resolved relationships
+     */
+    public function allCreditDebitNotes(Request $request)
+    {
+        try {
+            $query = DB::table('detached_note as dn')
+                ->join('detached_note_detail as dnd', 'dnd.detached_note_id', '=', 'dn.id')
+                ->leftJoin('contracts as c', 'c.id', '=', 'dn.contract_id')
+                ->leftJoin('contacts as ct', 'ct.id', '=', 'dn.contact_id')
+                ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
+                ->leftJoin('companies as cmp', 'cmp.id', '=', 'ct.company_id')
+                ->leftJoin('products as p', 'p.id', '=', 'dnd.product_id')
+                ->leftJoin('currency as cur', 'cur.id', '=', 'dn.currency_id')
+                ->select(
+                    'dn.id as note_id',
+                    'dn.note_number',
+                    'dn.note_type',
+                    'dn.note_date',
+                    'dn.status',
+                    'c.order_code',
+                    'ct.name as contact_name',
+                    'ct.code_meta as contact_code',
+                    'co.name as country',
+                    'cmp.name as company_name',
+                    'p.name as product_name',
+                    'dnd.quantity',
+                    'dnd.rate',
+                    'dnd.amount',
+                    DB::raw("COALESCE(cur.code, ct.currency, 'USD') as currency")
+                );
+
+            if ($request->filled('contact_id')) {
+                $query->where('ct.id', $request->input('contact_id'));
+            }
+
+            $data = $query->orderBy('dn.note_date', 'DESC')->get();
+
+            return response()->json($this->formatForTable($data));
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch all Credit/Debit Notes',
+                'details' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Dashboard Summary for a Contact
+     */
     public function dashboardSummary($contactId)
     {
         try {
             $buying = DB::table('contracts as c')
                 ->join('deal as d', 'd.id', '=', 'c.purchase_id')
                 ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->leftJoin('productcontracts as pc', 'pc.buyercontract_id', '=', 'bc.id')
-                ->where('d.contact_id', $contactId)
+                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
+                ->leftJoin('productcontracts as pc', function ($join) {
+                    $join->on('pc.buyercontract_id', '=', 'bc.id')
+                         ->orOn('pc.sellercontract_id', '=', 'sc.id');
+                })
+                ->where(function ($q) use ($contactId) {
+                    $q->where('d.contact_id', $contactId)
+                      ->orWhere('bc.contact_id', $contactId)
+                      ->orWhere('sc.contact_id', $contactId);
+                })
                 ->selectRaw("
                     COUNT(DISTINCT c.id) as total_buy_contracts,
-                    COALESCE(SUM(pc.quantity),0) as total_buy_quantity,
-                    COALESCE(SUM(pc.total_price),0) as total_buy_value
+                    COALESCE(SUM(pc.quantity), 0) as total_buy_quantity,
+                    COALESCE(SUM(pc.total_price), 0) as total_buy_value
                 ")
                 ->first();
 
             $selling = DB::table('contracts as c')
                 ->join('deal as d', 'd.id', '=', 'c.sale_id')
                 ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->leftJoin('productcontracts as pc', 'pc.sellercontract_id', '=', 'sc.id')
-                ->where('d.contact_id', $contactId)
+                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
+                ->leftJoin('productcontracts as pc', function ($join) {
+                    $join->on('pc.sellercontract_id', '=', 'sc.id')
+                         ->orOn('pc.buyercontract_id', '=', 'bc.id');
+                })
+                ->where(function ($q) use ($contactId) {
+                    $q->where('d.contact_id', $contactId)
+                      ->orWhere('sc.contact_id', $contactId)
+                      ->orWhere('bc.contact_id', $contactId);
+                })
                 ->selectRaw("
                     COUNT(DISTINCT c.id) as total_sell_contracts,
-                    COALESCE(SUM(pc.quantity),0) as total_sell_quantity,
-                    COALESCE(SUM(pc.total_price),0) as total_sell_value
+                    COALESCE(SUM(pc.quantity), 0) as total_sell_quantity,
+                    COALESCE(SUM(pc.total_price), 0) as total_sell_value
                 ")
                 ->first();
 
@@ -405,23 +645,25 @@ class PowerBiController extends Controller
 
             $topProduct = DB::table('productcontracts as pc')
                 ->join('products as p', 'p.id', '=', 'pc.product_id')
+                ->leftJoin('sellercontracts as sc', 'sc.id', '=', 'pc.sellercontract_id')
+                ->leftJoin('buyercontracts as bc', 'bc.id', '=', 'pc.buyercontract_id')
+                ->where(function ($q) use ($contactId) {
+                    $q->where('sc.contact_id', $contactId)
+                      ->orWhere('bc.contact_id', $contactId);
+                })
                 ->selectRaw("
                     p.id,
-                    p.name,
+                    p.name as product_name,
                     SUM(pc.quantity) as total_quantity
                 ")
                 ->groupBy('p.id', 'p.name')
                 ->orderByDesc('total_quantity')
                 ->first();
 
-            $topCountry = DB::table('contacts as ct')
-                ->join('countries as c', 'c.id', '=', 'ct.country_id')
-                ->selectRaw("
-                    c.name,
-                    COUNT(*) as total_contacts
-                ")
-                ->groupBy('c.name')
-                ->orderByDesc('total_contacts')
+            $contact = DB::table('contacts as ct')
+                ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
+                ->where('ct.id', $contactId)
+                ->select('co.name as country_name')
                 ->first();
 
             $revenue = ($selling->total_sell_value ?? 0) - ($buying->total_buy_value ?? 0);
@@ -437,8 +679,8 @@ class PowerBiController extends Controller
                     'credit_notes' => $creditNotes,
                     'debit_notes' => $debitNotes,
                     'revenue' => $revenue,
-                    'top_product' => $topProduct->name ?? '',
-                    'top_country' => $topCountry->name ?? ''
+                    'top_product' => $topProduct->product_name ?? '',
+                    'country' => $contact->country_name ?? ''
                 ]
             ];
 
@@ -452,46 +694,40 @@ class PowerBiController extends Controller
         }
     }
 
-    private function contactInformationData($contactId)
-    {
-        return DB::table('contacts')
-            ->leftJoin('companies', 'companies.id', '=', 'contacts.company_id')
-            ->leftJoin('countries', 'countries.id', '=', 'contacts.country_id')
-            ->select(
-                'contacts.id as contact_id',
-                'contacts.name',
-                'contacts.code_meta',
-                'companies.name as company',
-                'countries.name as country'
-            )
-            ->where('contacts.id', $contactId)
-            ->first();
-    }
-
+    /**
+     * Combined Dashboard for a Contact
+     */
     public function dashboard($contactId)
     {
         try {
-            $contactInformation = $this->contactInformationData($contactId);
-            $dashboardSummary = $this->dashboardSummaryData($contactId);
-            $purchases = $this->purchaseData($contactId);
-            $sales = $this->salesData($contactId);
-            $buyingPaymentTerms = $this->buyingPaymentTermsData($contactId);
-            $sellingPaymentTerms = $this->sellingPaymentTermsData($contactId);
-            $buyingCountry = $this->productBuyingCountryData($contactId);
-            $sellingCountry = $this->productSellingCountryData($contactId);
-            $creditDebit = $this->creditDebitData($contactId);
+            $contact = DB::table('contacts as c')
+                ->leftJoin('countries as co', 'co.id', '=', 'c.country_id')
+                ->leftJoin('companies as cp', 'cp.id', '=', 'c.company_id')
+                ->select(
+                    'c.id as contact_id',
+                    'c.code_meta as contact_code',
+                    'c.name as contact_name',
+                    'co.name as country',
+                    'cp.name as company_name',
+                    'c.registration',
+                    'c.vat',
+                    'c.currency',
+                    'c.website'
+                )
+                ->where('c.id', $contactId)
+                ->first();
 
             $dashboardData = [
                 [
-                    'contact_information' => $contactInformation,
-                    'dashboard_summary' => $dashboardSummary,
-                    'purchasing_side' => $purchases,
-                    'sales_side' => $sales,
-                    'buying_payment_terms' => $buyingPaymentTerms,
-                    'selling_payment_terms' => $sellingPaymentTerms,
-                    'product_buying_country' => $buyingCountry,
-                    'product_selling_country' => $sellingCountry,
-                    'credit_debit_notes' => $creditDebit
+                    'contact_information' => $contact,
+                    'purchases_endpoint' => url("/api/powerbi/contact/{$contactId}/purchases"),
+                    'sales_endpoint' => url("/api/powerbi/contact/{$contactId}/sales"),
+                    'buying_terms_endpoint' => url("/api/powerbi/contact/{$contactId}/buying-payment-terms"),
+                    'selling_terms_endpoint' => url("/api/powerbi/contact/{$contactId}/selling-payment-terms"),
+                    'product_buying_country_endpoint' => url("/api/powerbi/contact/{$contactId}/product-buying-country"),
+                    'product_selling_country_endpoint' => url("/api/powerbi/contact/{$contactId}/product-selling-country"),
+                    'credit_debit_notes_endpoint' => url("/api/powerbi/contact/{$contactId}/credit-debit-notes"),
+                    'summary_endpoint' => url("/api/powerbi/contact/{$contactId}/dashboard-summary")
                 ]
             ];
 
@@ -505,10 +741,16 @@ class PowerBiController extends Controller
         }
     }
 
+    /**
+     * All Products
+     */
     public function products()
     {
         try {
-            $products = DB::table('products')->get();
+            $products = DB::table('products')
+                ->select('id as product_id', 'name as product_name', 'code as product_code')
+                ->orderBy('name', 'ASC')
+                ->get();
 
             return response()->json($this->formatForTable($products));
 
@@ -520,10 +762,16 @@ class PowerBiController extends Controller
         }
     }
 
+    /**
+     * All Companies
+     */
     public function companies()
     {
         try {
-            $companies = DB::table('companies')->get();
+            $companies = DB::table('companies')
+                ->select('id as company_id', 'name as company_name')
+                ->orderBy('name', 'ASC')
+                ->get();
 
             return response()->json($this->formatForTable($companies));
 

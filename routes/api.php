@@ -21,20 +21,22 @@ Route::prefix('powerbi')
     ->middleware('oauth.auth')
     ->group(function () {
 
-        // --- Master Data APIs ---
+        // --- Master Data APIs (Fully Resolved Relationships) ---
         Route::get('/contacts', [PowerBiController::class, 'contacts']);
         Route::get('/countries', [PowerBiController::class, 'countries']);
         Route::get('/products', [PowerBiController::class, 'products']);
         Route::get('/companies', [PowerBiController::class, 'companies']);
         Route::get('/contracts', [PowerBiController::class, 'contracts']);
 
-        // --- Comprehensive Sales & Purchases APIs (Fully Resolved Relationships) ---
+        // --- Comprehensive Sales, Purchases & Notes APIs (Global Reports) ---
         Route::get('/sales', [PowerBiController::class, 'allSales']);
         Route::get('/all-sales', [PowerBiController::class, 'allSales']);
         Route::get('/purchases', [PowerBiController::class, 'allPurchases']);
         Route::get('/all-purchases', [PowerBiController::class, 'allPurchases']);
+        Route::get('/credit-debit-notes', [PowerBiController::class, 'allCreditDebitNotes']);
+        Route::get('/all-credit-debit-notes', [PowerBiController::class, 'allCreditDebitNotes']);
 
-        // --- Single Contact Reporting APIs ---
+        // --- Single Contact Reporting APIs (Filtered with Full Relationships) ---
         Route::get('/contact/{id}', [PowerBiController::class, 'contactInformation']);
         Route::get('/contact/{id}/purchases', [PowerBiController::class, 'purchases']);
         Route::get('/contact/{id}/sales', [PowerBiController::class, 'sales']);

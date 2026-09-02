@@ -13,7 +13,7 @@ Each script automatically acquires a fresh **OAuth 2.0 Bearer Token**, cleans an
 
 ---
 
-## 🌟 Comprehensive Sales & Purchases APIs (Fully Resolved Relationships)
+## 🌟 1. Global Transaction Reports (All Relationships Resolved)
 
 ### A. All Sales Report (`api/powerbi/sales` or `api/powerbi/all-sales`)
 *Fetches all sales contracts with resolved names for Country, Customer Company, Meta Company, Customer Name, Product Name, Payment Type, Payment Terms, and Currency.*
@@ -49,16 +49,16 @@ in
 
 ---
 
-## 📋 Master Data APIs
+### C. All Credit & Debit Notes (`api/powerbi/credit-debit-notes`)
+*Fetches all credit and debit notes with resolved names for Contact Name, Country, Company, Product Name, and Currency.*
 
-### 1. Contacts (`api/powerbi/contacts`)
 ```powerquery
 let
     TokenUrl = "https://metaerpapi.aideepseek.uk",
     TokenBody = [grant_type="client_credentials", client_id="powerbi_client_2026", client_secret="sec_erp_api_9823472398472938"],
     TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
     AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
-    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/contacts", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
+    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/credit-debit-notes", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
     Result = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
 in
     Result
@@ -66,52 +66,9 @@ in
 
 ---
 
-### 2. Countries (`api/powerbi/countries`)
-```powerquery
-let
-    TokenUrl = "https://metaerpapi.aideepseek.uk",
-    TokenBody = [grant_type="client_credentials", client_id="powerbi_client_2026", client_secret="sec_erp_api_9823472398472938"],
-    TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
-    AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
-    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/countries", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
-    Result = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
-in
-    Result
-```
+### D. All Contracts (`api/powerbi/contracts`)
+*Fetches all contracts with resolved Supplier, Customer, Countries, Operating Companies, and Payment Terms.*
 
----
-
-### 3. Products (`api/powerbi/products`)
-```powerquery
-let
-    TokenUrl = "https://metaerpapi.aideepseek.uk",
-    TokenBody = [grant_type="client_credentials", client_id="powerbi_client_2026", client_secret="sec_erp_api_9823472398472938"],
-    TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
-    AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
-    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/products", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
-    Result = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
-in
-    Result
-```
-
----
-
-### 4. Companies (`api/powerbi/companies`)
-```powerquery
-let
-    TokenUrl = "https://metaerpapi.aideepseek.uk",
-    TokenBody = [grant_type="client_credentials", client_id="powerbi_client_2026", client_secret="sec_erp_api_9823472398472938"],
-    TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
-    AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
-    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/companies", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
-    Result = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
-in
-    Result
-```
-
----
-
-### 5. Contracts (`api/powerbi/contracts`)
 ```powerquery
 let
     TokenUrl = "https://metaerpapi.aideepseek.uk",
@@ -126,16 +83,17 @@ in
 
 ---
 
-## 👤 Single Contact Reporting APIs
+## 📋 2. Master Data APIs (Resolved Names)
 
-### 6. Contact Details by ID (`api/powerbi/contact/14`)
+### Contacts (`api/powerbi/contacts`)
+*Now includes resolved Country Name and Company Name.*
 ```powerquery
 let
     TokenUrl = "https://metaerpapi.aideepseek.uk",
     TokenBody = [grant_type="client_credentials", client_id="powerbi_client_2026", client_secret="sec_erp_api_9823472398472938"],
     TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
     AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
-    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/contact/14", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
+    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/contacts", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
     Result = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
 in
     Result
@@ -143,7 +101,54 @@ in
 
 ---
 
-### 7. Contact Purchases (`api/powerbi/contact/14/purchases`)
+### Countries (`api/powerbi/countries`)
+```powerquery
+let
+    TokenUrl = "https://metaerpapi.aideepseek.uk",
+    TokenBody = [grant_type="client_credentials", client_id="powerbi_client_2026", client_secret="sec_erp_api_9823472398472938"],
+    TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
+    AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
+    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/countries", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
+    Result = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
+in
+    Result
+```
+
+---
+
+### Products (`api/powerbi/products`)
+```powerquery
+let
+    TokenUrl = "https://metaerpapi.aideepseek.uk",
+    TokenBody = [grant_type="client_credentials", client_id="powerbi_client_2026", client_secret="sec_erp_api_9823472398472938"],
+    TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
+    AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
+    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/products", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
+    Result = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
+in
+    Result
+```
+
+---
+
+### Companies (`api/powerbi/companies`)
+```powerquery
+let
+    TokenUrl = "https://metaerpapi.aideepseek.uk",
+    TokenBody = [grant_type="client_credentials", client_id="powerbi_client_2026", client_secret="sec_erp_api_9823472398472938"],
+    TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
+    AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
+    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/companies", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
+    Result = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
+in
+    Result
+```
+
+---
+
+## 👤 3. Single Contact Reporting APIs (Filtered with Full Relationships)
+
+### Contact Purchases (`api/powerbi/contact/14/purchases`)
 ```powerquery
 let
     TokenUrl = "https://metaerpapi.aideepseek.uk",
@@ -158,7 +163,7 @@ in
 
 ---
 
-### 8. Contact Sales (`api/powerbi/contact/14/sales`)
+### Contact Sales (`api/powerbi/contact/14/sales`)
 ```powerquery
 let
     TokenUrl = "https://metaerpapi.aideepseek.uk",
@@ -166,111 +171,6 @@ let
     TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
     AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
     Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/contact/14/sales", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
-    Result = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
-in
-    Result
-```
-
----
-
-### 9. Buying Payment Terms (`api/powerbi/contact/14/buying-payment-terms`)
-```powerquery
-let
-    TokenUrl = "https://metaerpapi.aideepseek.uk",
-    TokenBody = [grant_type="client_credentials", client_id="powerbi_client_2026", client_secret="sec_erp_api_9823472398472938"],
-    TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
-    AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
-    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/contact/14/buying-payment-terms", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
-    Result = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
-in
-    Result
-```
-
----
-
-### 10. Selling Payment Terms (`api/powerbi/contact/14/selling-payment-terms`)
-```powerquery
-let
-    TokenUrl = "https://metaerpapi.aideepseek.uk",
-    TokenBody = [grant_type="client_credentials", client_id="powerbi_client_2026", client_secret="sec_erp_api_9823472398472938"],
-    TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
-    AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
-    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/contact/14/selling-payment-terms", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
-    Result = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
-in
-    Result
-```
-
----
-
-### 11. Product Buying Country (`api/powerbi/contact/14/product-buying-country`)
-```powerquery
-let
-    TokenUrl = "https://metaerpapi.aideepseek.uk",
-    TokenBody = [grant_type="client_credentials", client_id="powerbi_client_2026", client_secret="sec_erp_api_9823472398472938"],
-    TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
-    AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
-    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/contact/14/product-buying-country", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
-    Result = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
-in
-    Result
-```
-
----
-
-### 12. Product Selling Country (`api/powerbi/contact/14/product-selling-country`)
-```powerquery
-let
-    TokenUrl = "https://metaerpapi.aideepseek.uk",
-    TokenBody = [grant_type="client_credentials", client_id="powerbi_client_2026", client_secret="sec_erp_api_9823472398472938"],
-    TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
-    AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
-    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/contact/14/product-selling-country", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
-    Result = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
-in
-    Result
-```
-
----
-
-### 13. Credit / Debit Notes (`api/powerbi/contact/14/credit-debit-notes`)
-```powerquery
-let
-    TokenUrl = "https://metaerpapi.aideepseek.uk",
-    TokenBody = [grant_type="client_credentials", client_id="powerbi_client_2026", client_secret="sec_erp_api_9823472398472938"],
-    TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
-    AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
-    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/contact/14/credit-debit-notes", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
-    Result = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
-in
-    Result
-```
-
----
-
-### 14. Dashboard Summary (`api/powerbi/contact/14/dashboard-summary`)
-```powerquery
-let
-    TokenUrl = "https://metaerpapi.aideepseek.uk",
-    TokenBody = [grant_type="client_credentials", client_id="powerbi_client_2026", client_secret="sec_erp_api_9823472398472938"],
-    TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
-    AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
-    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/contact/14/dashboard-summary", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
-    Result = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
-in
-    Result
-```
-
----
-
-### 15. Full Dashboard (`api/powerbi/powerbi/contact/14/dashboard`)
-```powerquery
-let
-    TokenUrl = "https://metaerpapi.aideepseek.uk",
-    TokenBody = [grant_type="client_credentials", client_id="powerbi_client_2026", client_secret="sec_erp_api_9823472398472938"],
-    TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
-    AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
-    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/powerbi/contact/14/dashboard", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
     Result = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
 in
     Result
