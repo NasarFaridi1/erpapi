@@ -102,10 +102,7 @@ class PowerBiController extends Controller
                     'c.registration',
                     'c.vat',
                     DB::raw("COALESCE(NULLIF(c.currency, ''), 'USD') as currency"),
-                    'c.website',
-                    'c.active',
-                    'c.initials',
-                    'c.eori_number'
+                    'c.website'
                 )
                 ->orderBy('c.id', 'ASC')
                 ->get();
@@ -474,15 +471,12 @@ class PowerBiController extends Controller
     }
 
     /**
-     * All Countries
+     * All Countries (Clean master list)
      */
     public function countries()
     {
         try {
-            $countries = DB::table('countries')
-                ->select('id as country_id', 'name as country_name', 'code', 'currency')
-                ->orderBy('name', 'ASC')
-                ->get();
+            $countries = DB::table('countries')->get();
 
             return response()->json($this->formatForTable($countries));
 
@@ -501,7 +495,7 @@ class PowerBiController extends Controller
     {
         try {
             $data = DB::table('detached_note as dn')
-                ->join('detached_note_detail as dnd', 'dnd.detached_note_id', '=', 'dn.id')
+                ->leftJoin('detached_note_detail as dnd', 'dnd.detached_note_id', '=', 'dn.id')
                 ->leftJoin('contracts as c', 'c.id', '=', 'dn.contract_id')
                 ->leftJoin('contacts as ct', 'ct.id', '=', 'dn.contact_id')
                 ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
@@ -525,8 +519,8 @@ class PowerBiController extends Controller
                     'dnd.amount',
                     DB::raw("COALESCE(cur.code, ct.currency, 'USD') as currency")
                 )
-                ->where('ct.id', $contactId)
-                ->orderBy('dn.note_date', 'DESC')
+                ->where('dn.contact_id', $contactId)
+                ->orderBy('dn.id', 'DESC')
                 ->get();
 
             return response()->json($this->formatForTable($data));
@@ -546,7 +540,7 @@ class PowerBiController extends Controller
     {
         try {
             $query = DB::table('detached_note as dn')
-                ->join('detached_note_detail as dnd', 'dnd.detached_note_id', '=', 'dn.id')
+                ->leftJoin('detached_note_detail as dnd', 'dnd.detached_note_id', '=', 'dn.id')
                 ->leftJoin('contracts as c', 'c.id', '=', 'dn.contract_id')
                 ->leftJoin('contacts as ct', 'ct.id', '=', 'dn.contact_id')
                 ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
@@ -572,10 +566,10 @@ class PowerBiController extends Controller
                 );
 
             if ($request->filled('contact_id')) {
-                $query->where('ct.id', $request->input('contact_id'));
+                $query->where('dn.contact_id', $request->input('contact_id'));
             }
 
-            $data = $query->orderBy('dn.note_date', 'DESC')->get();
+            $data = $query->orderBy('dn.id', 'DESC')->get();
 
             return response()->json($this->formatForTable($data));
 
@@ -747,10 +741,7 @@ class PowerBiController extends Controller
     public function products()
     {
         try {
-            $products = DB::table('products')
-                ->select('id as product_id', 'name as product_name', 'code as product_code')
-                ->orderBy('name', 'ASC')
-                ->get();
+            $products = DB::table('products')->get();
 
             return response()->json($this->formatForTable($products));
 
@@ -768,10 +759,7 @@ class PowerBiController extends Controller
     public function companies()
     {
         try {
-            $companies = DB::table('companies')
-                ->select('id as company_id', 'name as company_name')
-                ->orderBy('name', 'ASC')
-                ->get();
+            $companies = DB::table('companies')->get();
 
             return response()->json($this->formatForTable($companies));
 
