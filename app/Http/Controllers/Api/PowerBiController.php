@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class PowerBiController extends Controller
 {
@@ -32,7 +33,7 @@ class PowerBiController extends Controller
     }
 
     /**
-     * All Contracts with full relationships resolved (Supplier, Customer, Countries, Companies, Payment Terms)
+     * All Contracts Master with Supplier, Customer, Countries, Operating Companies, and Payment Terms
      */
     public function contracts()
     {
@@ -155,36 +156,28 @@ class PowerBiController extends Controller
     }
 
     /**
-     * Purchases by Contact ID with Country, Supplier Company, Meta Company & Product Names resolved
+     * Purchases by Contact ID with Real Product Line Data (deal_product)
      */
     public function purchases($contactId)
     {
         try {
             $data = DB::table('contracts as c')
                 ->whereNotNull('c.purchase_id')
-                ->leftJoin('deal as d', 'd.id', '=', 'c.purchase_id')
-                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->leftJoin('productcontracts as pc', function ($join) {
-                    $join->on('pc.buyercontract_id', '=', 'bc.id')
-                         ->orOn('pc.sellercontract_id', '=', 'sc.id');
+                ->join('deal as d', 'd.id', '=', 'c.purchase_id')
+                ->leftJoin('deal_products as d_rel', 'd_rel.deal_id', '=', 'd.id')
+                ->leftJoin('deal_product as dp', function ($join) {
+                    $join->on('dp.id', '=', 'd_rel.products_id')
+                         ->orOn('dp.associated_contract_id', '=', 'c.id')
+                         ->orOn('dp.contract_order_code', '=', 'c.order_code');
                 })
-                ->leftJoin('products as p', 'p.id', '=', 'pc.product_id')
-                ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
-                ->leftJoin('contacts as ct', function ($join) {
-                    $join->on('ct.id', '=', 'bc.contact_id')
-                         ->orOn('ct.id', '=', 'sc.contact_id')
-                         ->orOn('ct.id', '=', 'd.contact_id');
-                })
+                ->leftJoin('products as p', 'p.id', '=', 'dp.product_id')
+                ->leftJoin('contacts as ct', 'ct.id', '=', 'd.contact_id')
                 ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
                 ->leftJoin('companies as supplier_cmp', 'supplier_cmp.id', '=', 'ct.company_id')
+                ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
                 ->leftJoin('payment_type as pt', 'pt.id', '=', 'd.payment_type_id')
                 ->leftJoin('payment_terms_type as ptt', 'ptt.id', '=', 'd.payment_terms_type_id')
-                ->where(function ($q) use ($contactId) {
-                    $q->where('bc.contact_id', $contactId)
-                      ->orWhere('sc.contact_id', $contactId)
-                      ->orWhere('d.contact_id', $contactId);
-                })
+                ->where('d.contact_id', $contactId)
                 ->select(
                     'c.id as contract_id',
                     'c.order_code',
@@ -195,15 +188,15 @@ class PowerBiController extends Controller
                     'supplier_cmp.name as supplier_company',
                     'cmp.name as meta_company',
                     'p.name as product_name',
-                    'pc.quantity',
-                    'pc.premium',
-                    'pc.rate',
-                    'pc.total_price',
+                    'dp.quantity',
+                    'dp.premium',
+                    'dp.rate',
+                    'dp.total_price',
                     DB::raw("COALESCE(NULLIF(ct.currency, ''), 'USD') as currency"),
                     'pt.description as payment_type',
                     'ptt.description as payment_terms',
-                    'pc.start_date',
-                    'pc.end_date',
+                    'dp.start_date',
+                    'dp.end_date',
                     'ct.registration as supplier_registration',
                     'ct.vat as supplier_vat',
                     'ct.website as supplier_website'
@@ -222,36 +215,28 @@ class PowerBiController extends Controller
     }
 
     /**
-     * Sales by Contact ID with Country, Customer Company, Meta Company & Product Names resolved
+     * Sales by Contact ID with Real Product Line Data (deal_product)
      */
     public function sales($contactId)
     {
         try {
             $data = DB::table('contracts as c')
                 ->whereNotNull('c.sale_id')
-                ->leftJoin('deal as d', 'd.id', '=', 'c.sale_id')
-                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->leftJoin('productcontracts as pc', function ($join) {
-                    $join->on('pc.sellercontract_id', '=', 'sc.id')
-                         ->orOn('pc.buyercontract_id', '=', 'bc.id');
+                ->join('deal as d', 'd.id', '=', 'c.sale_id')
+                ->leftJoin('deal_products as d_rel', 'd_rel.deal_id', '=', 'd.id')
+                ->leftJoin('deal_product as dp', function ($join) {
+                    $join->on('dp.id', '=', 'd_rel.products_id')
+                         ->orOn('dp.associated_contract_id', '=', 'c.id')
+                         ->orOn('dp.contract_order_code', '=', 'c.order_code');
                 })
-                ->leftJoin('products as p', 'p.id', '=', 'pc.product_id')
-                ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
-                ->leftJoin('contacts as ct', function ($join) {
-                    $join->on('ct.id', '=', 'sc.contact_id')
-                         ->orOn('ct.id', '=', 'bc.contact_id')
-                         ->orOn('ct.id', '=', 'd.contact_id');
-                })
+                ->leftJoin('products as p', 'p.id', '=', 'dp.product_id')
+                ->leftJoin('contacts as ct', 'ct.id', '=', 'd.contact_id')
                 ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
                 ->leftJoin('companies as client_cmp', 'client_cmp.id', '=', 'ct.company_id')
+                ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
                 ->leftJoin('payment_type as pt', 'pt.id', '=', 'd.payment_type_id')
                 ->leftJoin('payment_terms_type as ptt', 'ptt.id', '=', 'd.payment_terms_type_id')
-                ->where(function ($q) use ($contactId) {
-                    $q->where('sc.contact_id', $contactId)
-                      ->orWhere('bc.contact_id', $contactId)
-                      ->orWhere('d.contact_id', $contactId);
-                })
+                ->where('d.contact_id', $contactId)
                 ->select(
                     'c.id as contract_id',
                     'c.order_code',
@@ -262,15 +247,15 @@ class PowerBiController extends Controller
                     'client_cmp.name as customer_company',
                     'cmp.name as meta_company',
                     'p.name as product_name',
-                    'pc.quantity',
-                    'pc.premium',
-                    'pc.rate',
-                    'pc.total_price',
+                    'dp.quantity',
+                    'dp.premium',
+                    'dp.rate',
+                    'dp.total_price',
                     DB::raw("COALESCE(NULLIF(ct.currency, ''), 'USD') as currency"),
                     'pt.description as payment_type',
                     'ptt.description as payment_terms',
-                    'pc.start_date',
-                    'pc.end_date',
+                    'dp.start_date',
+                    'dp.end_date',
                     'ct.registration as customer_registration',
                     'ct.vat as customer_vat',
                     'ct.website as customer_website'
@@ -296,26 +281,22 @@ class PowerBiController extends Controller
         try {
             $data = DB::table('contracts as c')
                 ->join('deal as d', 'd.id', '=', 'c.purchase_id')
+                ->leftJoin('deal_products as d_rel', 'd_rel.deal_id', '=', 'd.id')
+                ->leftJoin('deal_product as dp', function ($join) {
+                    $join->on('dp.id', '=', 'd_rel.products_id')
+                         ->orOn('dp.associated_contract_id', '=', 'c.id')
+                         ->orOn('dp.contract_order_code', '=', 'c.order_code');
+                })
                 ->leftJoin('payment_type as pt', 'pt.id', '=', 'd.payment_type_id')
                 ->leftJoin('payment_terms_type as ptt', 'ptt.id', '=', 'd.payment_terms_type_id')
-                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->leftJoin('productcontracts as pc', function ($join) {
-                    $join->on('pc.buyercontract_id', '=', 'bc.id')
-                         ->orOn('pc.sellercontract_id', '=', 'sc.id');
-                })
                 ->select(
                     'pt.description as payment_type',
                     'ptt.description as payment_terms',
                     DB::raw('COUNT(DISTINCT c.id) as total_contracts'),
-                    DB::raw('COALESCE(SUM(pc.quantity), 0) as total_quantity'),
-                    DB::raw('COALESCE(SUM(pc.total_price), 0) as total_value')
+                    DB::raw('COALESCE(SUM(dp.quantity), 0) as total_quantity'),
+                    DB::raw('COALESCE(SUM(dp.total_price), 0) as total_value')
                 )
-                ->where(function ($q) use ($contactId) {
-                    $q->where('d.contact_id', $contactId)
-                      ->orWhere('bc.contact_id', $contactId)
-                      ->orWhere('sc.contact_id', $contactId);
-                })
+                ->where('d.contact_id', $contactId)
                 ->groupBy('pt.description', 'ptt.description')
                 ->orderBy('total_value', 'DESC')
                 ->get();
@@ -338,26 +319,22 @@ class PowerBiController extends Controller
         try {
             $data = DB::table('contracts as c')
                 ->join('deal as d', 'd.id', '=', 'c.sale_id')
+                ->leftJoin('deal_products as d_rel', 'd_rel.deal_id', '=', 'd.id')
+                ->leftJoin('deal_product as dp', function ($join) {
+                    $join->on('dp.id', '=', 'd_rel.products_id')
+                         ->orOn('dp.associated_contract_id', '=', 'c.id')
+                         ->orOn('dp.contract_order_code', '=', 'c.order_code');
+                })
                 ->leftJoin('payment_type as pt', 'pt.id', '=', 'd.payment_type_id')
                 ->leftJoin('payment_terms_type as ptt', 'ptt.id', '=', 'd.payment_terms_type_id')
-                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->leftJoin('productcontracts as pc', function ($join) {
-                    $join->on('pc.sellercontract_id', '=', 'sc.id')
-                         ->orOn('pc.buyercontract_id', '=', 'bc.id');
-                })
                 ->select(
                     'pt.description as payment_type',
                     'ptt.description as payment_terms',
                     DB::raw('COUNT(DISTINCT c.id) as total_contracts'),
-                    DB::raw('COALESCE(SUM(pc.quantity), 0) as total_quantity'),
-                    DB::raw('COALESCE(SUM(pc.total_price), 0) as total_value')
+                    DB::raw('COALESCE(SUM(dp.quantity), 0) as total_quantity'),
+                    DB::raw('COALESCE(SUM(dp.total_price), 0) as total_value')
                 )
-                ->where(function ($q) use ($contactId) {
-                    $q->where('d.contact_id', $contactId)
-                      ->orWhere('sc.contact_id', $contactId)
-                      ->orWhere('bc.contact_id', $contactId);
-                })
+                ->where('d.contact_id', $contactId)
                 ->groupBy('pt.description', 'ptt.description')
                 ->orderByDesc('total_value')
                 ->get();
@@ -380,32 +357,25 @@ class PowerBiController extends Controller
         try {
             $data = DB::table('contracts as c')
                 ->join('deal as d', 'd.id', '=', 'c.purchase_id')
-                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->leftJoin('productcontracts as pc', function ($join) {
-                    $join->on('pc.buyercontract_id', '=', 'bc.id')
-                         ->orOn('pc.sellercontract_id', '=', 'sc.id');
+                ->leftJoin('deal_products as d_rel', 'd_rel.deal_id', '=', 'd.id')
+                ->leftJoin('deal_product as dp', function ($join) {
+                    $join->on('dp.id', '=', 'd_rel.products_id')
+                         ->orOn('dp.associated_contract_id', '=', 'c.id')
+                         ->orOn('dp.contract_order_code', '=', 'c.order_code');
                 })
-                ->leftJoin('products as p', 'p.id', '=', 'pc.product_id')
-                ->leftJoin('contacts as ct', function ($join) {
-                    $join->on('ct.id', '=', 'bc.contact_id')
-                         ->orOn('ct.id', '=', 'sc.contact_id')
-                         ->orOn('ct.id', '=', 'd.contact_id');
-                })
+                ->leftJoin('products as p', 'p.id', '=', 'dp.product_id')
+                ->leftJoin('contacts as ct', 'ct.id', '=', 'd.contact_id')
                 ->leftJoin('countries as country', 'country.id', '=', 'ct.country_id')
                 ->select(
                     'country.name as country',
                     'p.name as product_name',
                     DB::raw('COUNT(DISTINCT c.id) as total_contracts'),
-                    DB::raw('COALESCE(SUM(pc.quantity), 0) as total_quantity'),
-                    DB::raw('COALESCE(SUM(pc.total_price), 0) as total_value')
+                    DB::raw('COALESCE(SUM(dp.quantity), 0) as total_quantity'),
+                    DB::raw('COALESCE(SUM(dp.total_price), 0) as total_value')
                 )
-                ->where(function ($q) use ($contactId) {
-                    $q->where('d.contact_id', $contactId)
-                      ->orWhere('bc.contact_id', $contactId)
-                      ->orWhere('sc.contact_id', $contactId);
-                })
+                ->where('d.contact_id', $contactId)
                 ->whereNotNull('country.name')
+                ->whereNotNull('p.name')
                 ->groupBy('country.name', 'p.name')
                 ->orderByDesc('total_quantity')
                 ->get();
@@ -428,18 +398,14 @@ class PowerBiController extends Controller
         try {
             $data = DB::table('contracts as c')
                 ->join('deal as d', 'd.id', '=', 'c.sale_id')
-                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->leftJoin('productcontracts as pc', function ($join) {
-                    $join->on('pc.sellercontract_id', '=', 'sc.id')
-                         ->orOn('pc.buyercontract_id', '=', 'bc.id');
+                ->leftJoin('deal_products as d_rel', 'd_rel.deal_id', '=', 'd.id')
+                ->leftJoin('deal_product as dp', function ($join) {
+                    $join->on('dp.id', '=', 'd_rel.products_id')
+                         ->orOn('dp.associated_contract_id', '=', 'c.id')
+                         ->orOn('dp.contract_order_code', '=', 'c.order_code');
                 })
-                ->leftJoin('products as p', 'p.id', '=', 'pc.product_id')
-                ->leftJoin('contacts as ct', function ($join) {
-                    $join->on('ct.id', '=', 'sc.contact_id')
-                         ->orOn('ct.id', '=', 'bc.contact_id')
-                         ->orOn('ct.id', '=', 'd.contact_id');
-                })
+                ->leftJoin('products as p', 'p.id', '=', 'dp.product_id')
+                ->leftJoin('contacts as ct', 'ct.id', '=', 'd.contact_id')
                 ->leftJoin('countries as country', 'country.id', '=', 'ct.country_id')
                 ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
                 ->select(
@@ -447,15 +413,12 @@ class PowerBiController extends Controller
                     'cmp.name as meta_company',
                     'p.name as product_name',
                     DB::raw('COUNT(DISTINCT c.id) as total_contracts'),
-                    DB::raw('COALESCE(SUM(pc.quantity), 0) as total_quantity'),
-                    DB::raw('COALESCE(SUM(pc.total_price), 0) as total_value')
+                    DB::raw('COALESCE(SUM(dp.quantity), 0) as total_quantity'),
+                    DB::raw('COALESCE(SUM(dp.total_price), 0) as total_value')
                 )
-                ->where(function ($q) use ($contactId) {
-                    $q->where('d.contact_id', $contactId)
-                      ->orWhere('sc.contact_id', $contactId)
-                      ->orWhere('bc.contact_id', $contactId);
-                })
+                ->where('d.contact_id', $contactId)
                 ->whereNotNull('country.name')
+                ->whereNotNull('p.name')
                 ->groupBy('country.name', 'cmp.name', 'p.name')
                 ->orderByDesc('total_quantity')
                 ->get();
@@ -495,11 +458,11 @@ class PowerBiController extends Controller
     {
         try {
             $tableName = null;
-            if (\Illuminate\Support\Facades\Schema::hasTable('detached_note')) {
+            if (Schema::hasTable('detached_note')) {
                 $tableName = 'detached_note';
-            } elseif (\Illuminate\Support\Facades\Schema::hasTable('detached_notes')) {
+            } elseif (Schema::hasTable('detached_notes')) {
                 $tableName = 'detached_notes';
-            } elseif (\Illuminate\Support\Facades\Schema::hasTable('credit_debit_notes')) {
+            } elseif (Schema::hasTable('credit_debit_notes')) {
                 $tableName = 'credit_debit_notes';
             }
 
@@ -512,12 +475,12 @@ class PowerBiController extends Controller
                 ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
                 ->leftJoin('companies as cmp', 'cmp.id', '=', 'ct.company_id');
 
-            if (\Illuminate\Support\Facades\Schema::hasTable('detached_note_detail')) {
+            if (Schema::hasTable('detached_note_detail')) {
                 $query->leftJoin('detached_note_detail as dnd', 'dnd.detached_note_id', '=', 'dn.id')
                       ->leftJoin('products as p', 'p.id', '=', 'dnd.product_id');
             }
 
-            if (\Illuminate\Support\Facades\Schema::hasTable('contracts')) {
+            if (Schema::hasTable('contracts')) {
                 $query->leftJoin('contracts as c', 'c.id', '=', 'dn.contract_id');
             }
 
@@ -548,11 +511,11 @@ class PowerBiController extends Controller
     {
         try {
             $tableName = null;
-            if (\Illuminate\Support\Facades\Schema::hasTable('detached_note')) {
+            if (Schema::hasTable('detached_note')) {
                 $tableName = 'detached_note';
-            } elseif (\Illuminate\Support\Facades\Schema::hasTable('detached_notes')) {
+            } elseif (Schema::hasTable('detached_notes')) {
                 $tableName = 'detached_notes';
-            } elseif (\Illuminate\Support\Facades\Schema::hasTable('credit_debit_notes')) {
+            } elseif (Schema::hasTable('credit_debit_notes')) {
                 $tableName = 'credit_debit_notes';
             }
 
@@ -565,12 +528,12 @@ class PowerBiController extends Controller
                 ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
                 ->leftJoin('companies as cmp', 'cmp.id', '=', 'ct.company_id');
 
-            if (\Illuminate\Support\Facades\Schema::hasTable('detached_note_detail')) {
+            if (Schema::hasTable('detached_note_detail')) {
                 $query->leftJoin('detached_note_detail as dnd', 'dnd.detached_note_id', '=', 'dn.id')
                       ->leftJoin('products as p', 'p.id', '=', 'dnd.product_id');
             }
 
-            if (\Illuminate\Support\Facades\Schema::hasTable('contracts')) {
+            if (Schema::hasTable('contracts')) {
                 $query->leftJoin('contracts as c', 'c.id', '=', 'dn.contract_id');
             }
 
@@ -604,66 +567,59 @@ class PowerBiController extends Controller
         try {
             $buying = DB::table('contracts as c')
                 ->join('deal as d', 'd.id', '=', 'c.purchase_id')
-                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->leftJoin('productcontracts as pc', function ($join) {
-                    $join->on('pc.buyercontract_id', '=', 'bc.id')
-                         ->orOn('pc.sellercontract_id', '=', 'sc.id');
+                ->leftJoin('deal_products as d_rel', 'd_rel.deal_id', '=', 'd.id')
+                ->leftJoin('deal_product as dp', function ($join) {
+                    $join->on('dp.id', '=', 'd_rel.products_id')
+                         ->orOn('dp.associated_contract_id', '=', 'c.id')
+                         ->orOn('dp.contract_order_code', '=', 'c.order_code');
                 })
-                ->where(function ($q) use ($contactId) {
-                    $q->where('d.contact_id', $contactId)
-                      ->orWhere('bc.contact_id', $contactId)
-                      ->orWhere('sc.contact_id', $contactId);
-                })
+                ->where('d.contact_id', $contactId)
                 ->selectRaw("
                     COUNT(DISTINCT c.id) as total_buy_contracts,
-                    COALESCE(SUM(pc.quantity), 0) as total_buy_quantity,
-                    COALESCE(SUM(pc.total_price), 0) as total_buy_value
+                    COALESCE(SUM(dp.quantity), 0) as total_buy_quantity,
+                    COALESCE(SUM(dp.total_price), 0) as total_buy_value
                 ")
                 ->first();
 
             $selling = DB::table('contracts as c')
                 ->join('deal as d', 'd.id', '=', 'c.sale_id')
-                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->leftJoin('productcontracts as pc', function ($join) {
-                    $join->on('pc.sellercontract_id', '=', 'sc.id')
-                         ->orOn('pc.buyercontract_id', '=', 'bc.id');
+                ->leftJoin('deal_products as d_rel', 'd_rel.deal_id', '=', 'd.id')
+                ->leftJoin('deal_product as dp', function ($join) {
+                    $join->on('dp.id', '=', 'd_rel.products_id')
+                         ->orOn('dp.associated_contract_id', '=', 'c.id')
+                         ->orOn('dp.contract_order_code', '=', 'c.order_code');
                 })
-                ->where(function ($q) use ($contactId) {
-                    $q->where('d.contact_id', $contactId)
-                      ->orWhere('sc.contact_id', $contactId)
-                      ->orWhere('bc.contact_id', $contactId);
-                })
+                ->where('d.contact_id', $contactId)
                 ->selectRaw("
                     COUNT(DISTINCT c.id) as total_sell_contracts,
-                    COALESCE(SUM(pc.quantity), 0) as total_sell_quantity,
-                    COALESCE(SUM(pc.total_price), 0) as total_sell_value
+                    COALESCE(SUM(dp.quantity), 0) as total_sell_quantity,
+                    COALESCE(SUM(dp.total_price), 0) as total_sell_value
                 ")
                 ->first();
 
-            $creditNotes = DB::table('detached_note')
-                ->where('contact_id', $contactId)
-                ->where('note_type', 'Credit')
-                ->count();
+            $creditNotes = 0;
+            $debitNotes = 0;
+            if (Schema::hasTable('detached_note')) {
+                $creditNotes = DB::table('detached_note')
+                    ->where('contact_id', $contactId)
+                    ->where('note_type', 'Credit')
+                    ->count();
 
-            $debitNotes = DB::table('detached_note')
-                ->where('contact_id', $contactId)
-                ->where('note_type', 'Debit')
-                ->count();
+                $debitNotes = DB::table('detached_note')
+                    ->where('contact_id', $contactId)
+                    ->where('note_type', 'Debit')
+                    ->count();
+            }
 
-            $topProduct = DB::table('productcontracts as pc')
-                ->join('products as p', 'p.id', '=', 'pc.product_id')
-                ->leftJoin('sellercontracts as sc', 'sc.id', '=', 'pc.sellercontract_id')
-                ->leftJoin('buyercontracts as bc', 'bc.id', '=', 'pc.buyercontract_id')
-                ->where(function ($q) use ($contactId) {
-                    $q->where('sc.contact_id', $contactId)
-                      ->orWhere('bc.contact_id', $contactId);
-                })
+            $topProduct = DB::table('deal as d')
+                ->join('deal_products as d_rel', 'd_rel.deal_id', '=', 'd.id')
+                ->join('deal_product as dp', 'dp.id', '=', 'd_rel.products_id')
+                ->join('products as p', 'p.id', '=', 'dp.product_id')
+                ->where('d.contact_id', $contactId)
                 ->selectRaw("
                     p.id,
                     p.name as product_name,
-                    SUM(pc.quantity) as total_quantity
+                    SUM(dp.quantity) as total_quantity
                 ")
                 ->groupBy('p.id', 'p.name')
                 ->orderByDesc('total_quantity')
@@ -787,29 +743,25 @@ class PowerBiController extends Controller
     }
 
     /**
-     * Comprehensive Sales API: Fetches all sales contracts with all relationships resolved to readable names.
+     * Comprehensive Sales API: Fetches all sales contracts with real product line details from deal_product
      */
     public function allSales(Request $request)
     {
         try {
             $query = DB::table('contracts as c')
                 ->whereNotNull('c.sale_id')
-                ->leftJoin('deal as d', 'd.id', '=', 'c.sale_id')
-                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->leftJoin('productcontracts as pc', function ($join) {
-                    $join->on('pc.sellercontract_id', '=', 'sc.id')
-                         ->orOn('pc.buyercontract_id', '=', 'bc.id');
+                ->join('deal as d', 'd.id', '=', 'c.sale_id')
+                ->leftJoin('deal_products as d_rel', 'd_rel.deal_id', '=', 'd.id')
+                ->leftJoin('deal_product as dp', function ($join) {
+                    $join->on('dp.id', '=', 'd_rel.products_id')
+                         ->orOn('dp.associated_contract_id', '=', 'c.id')
+                         ->orOn('dp.contract_order_code', '=', 'c.order_code');
                 })
-                ->leftJoin('products as p', 'p.id', '=', 'pc.product_id')
-                ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
-                ->leftJoin('contacts as ct', function ($join) {
-                    $join->on('ct.id', '=', 'sc.contact_id')
-                         ->orOn('ct.id', '=', 'bc.contact_id')
-                         ->orOn('ct.id', '=', 'd.contact_id');
-                })
+                ->leftJoin('products as p', 'p.id', '=', 'dp.product_id')
+                ->leftJoin('contacts as ct', 'ct.id', '=', 'd.contact_id')
                 ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
                 ->leftJoin('companies as client_cmp', 'client_cmp.id', '=', 'ct.company_id')
+                ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
                 ->leftJoin('payment_type as pt', 'pt.id', '=', 'd.payment_type_id')
                 ->leftJoin('payment_terms_type as ptt', 'ptt.id', '=', 'd.payment_terms_type_id')
                 ->select(
@@ -822,26 +774,22 @@ class PowerBiController extends Controller
                     'client_cmp.name as customer_company',
                     'cmp.name as meta_company',
                     'p.name as product_name',
-                    'pc.quantity',
-                    'pc.premium',
-                    'pc.rate',
-                    'pc.total_price',
+                    'dp.quantity',
+                    'dp.premium',
+                    'dp.rate',
+                    'dp.total_price',
                     DB::raw("COALESCE(NULLIF(ct.currency, ''), 'USD') as currency"),
                     'pt.description as payment_type',
                     'ptt.description as payment_terms',
-                    'pc.start_date',
-                    'pc.end_date',
+                    'dp.start_date',
+                    'dp.end_date',
                     'ct.registration as customer_registration',
                     'ct.vat as customer_vat',
                     'ct.website as customer_website'
                 );
 
             if ($request->filled('contact_id')) {
-                $query->where(function ($q) use ($request) {
-                    $q->where('sc.contact_id', $request->input('contact_id'))
-                      ->orWhere('bc.contact_id', $request->input('contact_id'))
-                      ->orWhere('d.contact_id', $request->input('contact_id'));
-                });
+                $query->where('d.contact_id', $request->input('contact_id'));
             }
 
             $data = $query->orderBy('c.id', 'DESC')->get();
@@ -857,29 +805,25 @@ class PowerBiController extends Controller
     }
 
     /**
-     * Comprehensive Purchases API: Fetches all purchase contracts with all relationships resolved to readable names.
+     * Comprehensive Purchases API: Fetches all purchase contracts with real product line details from deal_product
      */
     public function allPurchases(Request $request)
     {
         try {
             $query = DB::table('contracts as c')
                 ->whereNotNull('c.purchase_id')
-                ->leftJoin('deal as d', 'd.id', '=', 'c.purchase_id')
-                ->leftJoin('buyercontracts as bc', 'bc.contract_id', '=', 'c.id')
-                ->leftJoin('sellercontracts as sc', 'sc.contract_id', '=', 'c.id')
-                ->leftJoin('productcontracts as pc', function ($join) {
-                    $join->on('pc.buyercontract_id', '=', 'bc.id')
-                         ->orOn('pc.sellercontract_id', '=', 'sc.id');
+                ->join('deal as d', 'd.id', '=', 'c.purchase_id')
+                ->leftJoin('deal_products as d_rel', 'd_rel.deal_id', '=', 'd.id')
+                ->leftJoin('deal_product as dp', function ($join) {
+                    $join->on('dp.id', '=', 'd_rel.products_id')
+                         ->orOn('dp.associated_contract_id', '=', 'c.id')
+                         ->orOn('dp.contract_order_code', '=', 'c.order_code');
                 })
-                ->leftJoin('products as p', 'p.id', '=', 'pc.product_id')
-                ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
-                ->leftJoin('contacts as ct', function ($join) {
-                    $join->on('ct.id', '=', 'bc.contact_id')
-                         ->orOn('ct.id', '=', 'sc.contact_id')
-                         ->orOn('ct.id', '=', 'd.contact_id');
-                })
+                ->leftJoin('products as p', 'p.id', '=', 'dp.product_id')
+                ->leftJoin('contacts as ct', 'ct.id', '=', 'd.contact_id')
                 ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
                 ->leftJoin('companies as supplier_cmp', 'supplier_cmp.id', '=', 'ct.company_id')
+                ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
                 ->leftJoin('payment_type as pt', 'pt.id', '=', 'd.payment_type_id')
                 ->leftJoin('payment_terms_type as ptt', 'ptt.id', '=', 'd.payment_terms_type_id')
                 ->select(
@@ -892,26 +836,22 @@ class PowerBiController extends Controller
                     'supplier_cmp.name as supplier_company',
                     'cmp.name as meta_company',
                     'p.name as product_name',
-                    'pc.quantity',
-                    'pc.premium',
-                    'pc.rate',
-                    'pc.total_price',
+                    'dp.quantity',
+                    'dp.premium',
+                    'dp.rate',
+                    'dp.total_price',
                     DB::raw("COALESCE(NULLIF(ct.currency, ''), 'USD') as currency"),
                     'pt.description as payment_type',
                     'ptt.description as payment_terms',
-                    'pc.start_date',
-                    'pc.end_date',
+                    'dp.start_date',
+                    'dp.end_date',
                     'ct.registration as supplier_registration',
                     'ct.vat as supplier_vat',
                     'ct.website as supplier_website'
                 );
 
             if ($request->filled('contact_id')) {
-                $query->where(function ($q) use ($request) {
-                    $q->where('bc.contact_id', $request->input('contact_id'))
-                      ->orWhere('sc.contact_id', $request->input('contact_id'))
-                      ->orWhere('d.contact_id', $request->input('contact_id'));
-                });
+                $query->where('d.contact_id', $request->input('contact_id'));
             }
 
             $data = $query->orderBy('c.id', 'DESC')->get();
