@@ -457,34 +457,7 @@ class PowerBiController extends Controller
     public function creditDebitNotes($contactId)
     {
         try {
-            // First check detached_note
-            $data = collect();
-            if (Schema::hasTable('detached_note')) {
-                $dnData = DB::table('detached_note as dn')
-                    ->leftJoin('contacts as ct', 'ct.id', '=', 'dn.contact_id')
-                    ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
-                    ->leftJoin('companies as cmp', 'cmp.id', '=', 'ct.company_id')
-                    ->leftJoin('contracts as c', 'c.id', '=', 'dn.contract_id')
-                    ->where('dn.contact_id', $contactId)
-                    ->select(
-                        'dn.id as note_id',
-                        'dn.note_number',
-                        'dn.note_type',
-                        'dn.note_date',
-                        'dn.status',
-                        'c.order_code',
-                        'ct.name as contact_name',
-                        'ct.code_meta as contact_code',
-                        'co.name as country',
-                        'cmp.name as company_name',
-                        DB::raw("COALESCE(NULLIF(ct.currency, ''), 'USD') as currency")
-                    )
-                    ->get();
-                $data = $data->merge($dnData);
-            }
-
-            // Also pull Credit/Debit Notes & Notes from deal
-            $dealNotes = DB::table('deal as d')
+            $data = DB::table('deal as d')
                 ->leftJoin('contracts as c', function ($join) {
                     $join->on('c.sale_id', '=', 'd.id')
                          ->orOn('c.purchase_id', '=', 'd.id');
@@ -512,14 +485,16 @@ class PowerBiController extends Controller
                     DB::raw("COALESCE(d.credit_note_text, d.debit_note_text, d.notes) as note_description"),
                     DB::raw("COALESCE(NULLIF(ct.currency, ''), 'USD') as currency")
                 )
+                ->orderBy('d.id', 'DESC')
                 ->get();
-
-            $data = $data->merge($dealNotes);
 
             return response()->json($this->formatForTable($data));
 
         } catch (\Exception $e) {
-            return response()->json([]);
+            return response()->json([
+                'error' => 'Failed to fetch Credit/Debit Notes',
+                'details' => $e->getMessage()
+            ], 500);
         }
     }
 
@@ -529,39 +504,7 @@ class PowerBiController extends Controller
     public function allCreditDebitNotes(Request $request)
     {
         try {
-            $data = collect();
-
-            if (Schema::hasTable('detached_note')) {
-                $dnQuery = DB::table('detached_note as dn')
-                    ->leftJoin('contacts as ct', 'ct.id', '=', 'dn.contact_id')
-                    ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
-                    ->leftJoin('companies as cmp', 'cmp.id', '=', 'ct.company_id')
-                    ->leftJoin('contracts as c', 'c.id', '=', 'dn.contract_id');
-
-                if ($request->filled('contact_id')) {
-                    $dnQuery->where('dn.contact_id', $request->input('contact_id'));
-                }
-
-                $dnData = $dnQuery->select(
-                    'dn.id as note_id',
-                    'dn.note_number',
-                    'dn.note_type',
-                    'dn.note_date',
-                    'dn.status',
-                    'c.order_code',
-                    'ct.name as contact_name',
-                    'ct.code_meta as contact_code',
-                    'co.name as country',
-                    'cmp.name as company_name',
-                    DB::raw("NULL as note_description"),
-                    DB::raw("COALESCE(NULLIF(ct.currency, ''), 'USD') as currency")
-                )->get();
-
-                $data = $data->merge($dnData);
-            }
-
-            // Pull Credit/Debit Notes and contract notes directly from deal table
-            $dealQuery = DB::table('deal as d')
+            $query = DB::table('deal as d')
                 ->leftJoin('contracts as c', function ($join) {
                     $join->on('c.sale_id', '=', 'd.id')
                          ->orOn('c.purchase_id', '=', 'd.id');
@@ -570,25 +513,19 @@ class PowerBiController extends Controller
                 ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
                 ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
                 ->where(function ($q) {
-                    $q->where(function ($sub) {
-                        $sub->whereNotNull('d.credit_note_text')->where('d.credit_note_text', '!=', '');
-                    })
-                    ->orWhere(function ($sub) {
-                        $sub->whereNotNull('d.debit_note_text')->where('d.debit_note_text', '!=', '');
-                    })
-                    ->orWhere(function ($sub) {
-                        $sub->whereNotNull('d.notes')->where('d.notes', '!=', '');
-                    });
+                    $q->whereNotNull('d.credit_note_text')
+                      ->orWhereNotNull('d.debit_note_text')
+                      ->orWhereNotNull('d.notes');
                 });
 
             if ($request->filled('contact_id')) {
-                $dealQuery->where('d.contact_id', $request->input('contact_id'));
+                $query->where('d.contact_id', $request->input('contact_id'));
             }
 
-            $dealData = $dealQuery->select(
+            $data = $query->select(
                 'd.id as note_id',
                 DB::raw("COALESCE(c.order_code, CONCAT('DEAL-', d.id)) as note_number"),
-                DB::raw("CASE WHEN d.credit_note_text IS NOT NULL AND d.credit_note_text != '' THEN 'Credit Note' WHEN d.debit_note_text IS NOT NULL AND d.debit_note_text != '' THEN 'Debit Note' ELSE 'Contract Note' END as note_type"),
+                DB::raw("CASE WHEN d.credit_note_text IS NOT NULL THEN 'Credit Note' WHEN d.debit_note_text IS NOT NULL THEN 'Debit Note' ELSE 'Contract Note' END as note_type"),
                 'd.payment_date as note_date',
                 'd.payment_status as status',
                 'c.order_code',
@@ -596,18 +533,19 @@ class PowerBiController extends Controller
                 'ct.code_meta as contact_code',
                 'co.name as country',
                 'cmp.name as company_name',
-                DB::raw("COALESCE(NULLIF(d.credit_note_text, ''), NULLIF(d.debit_note_text, ''), d.notes) as note_description"),
+                DB::raw("COALESCE(d.credit_note_text, d.debit_note_text, d.notes) as note_description"),
                 DB::raw("COALESCE(NULLIF(ct.currency, ''), 'USD') as currency")
             )
             ->orderBy('d.id', 'DESC')
             ->get();
 
-            $data = $data->merge($dealData);
-
             return response()->json($this->formatForTable($data));
 
         } catch (\Exception $e) {
-            return response()->json([]);
+            return response()->json([
+                'error' => 'Failed to fetch all Credit/Debit Notes',
+                'details' => $e->getMessage()
+            ], 500);
         }
     }
 
