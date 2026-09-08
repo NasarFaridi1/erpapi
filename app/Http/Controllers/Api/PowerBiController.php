@@ -501,7 +501,6 @@ class PowerBiController extends Controller
                 ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
                 ->leftJoin('companies as cmp', 'cmp.id', '=', 'ct.company_id')
                 ->leftJoin('products as p', 'p.id', '=', 'dnd.product_id')
-                ->leftJoin('currency as cur', 'cur.id', '=', 'dn.currency_id')
                 ->select(
                     'dn.id as note_id',
                     'dn.note_number',
@@ -517,7 +516,7 @@ class PowerBiController extends Controller
                     'dnd.quantity',
                     'dnd.rate',
                     'dnd.amount',
-                    DB::raw("COALESCE(cur.code, ct.currency, 'USD') as currency")
+                    DB::raw("COALESCE(NULLIF(ct.currency, ''), 'USD') as currency")
                 )
                 ->where('dn.contact_id', $contactId)
                 ->orderBy('dn.id', 'DESC')
@@ -526,10 +525,34 @@ class PowerBiController extends Controller
             return response()->json($this->formatForTable($data));
 
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Failed to fetch Credit/Debit Notes',
-                'details' => $e->getMessage()
-            ], 500);
+            try {
+                $fallback = DB::table('detached_note as dn')
+                    ->leftJoin('contacts as ct', 'ct.id', '=', 'dn.contact_id')
+                    ->leftJoin('companies as cmp', 'cmp.id', '=', 'ct.company_id')
+                    ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
+                    ->select(
+                        'dn.id as note_id',
+                        'dn.note_number',
+                        'dn.note_type',
+                        'dn.note_date',
+                        'dn.status',
+                        'ct.name as contact_name',
+                        'ct.code_meta as contact_code',
+                        'co.name as country',
+                        'cmp.name as company_name',
+                        DB::raw("COALESCE(NULLIF(ct.currency, ''), 'USD') as currency")
+                    )
+                    ->where('dn.contact_id', $contactId)
+                    ->orderBy('dn.id', 'DESC')
+                    ->get();
+
+                return response()->json($this->formatForTable($fallback));
+            } catch (\Exception $e2) {
+                return response()->json([
+                    'error' => 'Failed to fetch Credit/Debit Notes',
+                    'details' => $e->getMessage()
+                ], 500);
+            }
         }
     }
 
@@ -546,7 +569,6 @@ class PowerBiController extends Controller
                 ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
                 ->leftJoin('companies as cmp', 'cmp.id', '=', 'ct.company_id')
                 ->leftJoin('products as p', 'p.id', '=', 'dnd.product_id')
-                ->leftJoin('currency as cur', 'cur.id', '=', 'dn.currency_id')
                 ->select(
                     'dn.id as note_id',
                     'dn.note_number',
@@ -562,7 +584,7 @@ class PowerBiController extends Controller
                     'dnd.quantity',
                     'dnd.rate',
                     'dnd.amount',
-                    DB::raw("COALESCE(cur.code, ct.currency, 'USD') as currency")
+                    DB::raw("COALESCE(NULLIF(ct.currency, ''), 'USD') as currency")
                 );
 
             if ($request->filled('contact_id')) {
@@ -574,10 +596,37 @@ class PowerBiController extends Controller
             return response()->json($this->formatForTable($data));
 
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Failed to fetch all Credit/Debit Notes',
-                'details' => $e->getMessage()
-            ], 500);
+            try {
+                $fallback = DB::table('detached_note as dn')
+                    ->leftJoin('contacts as ct', 'ct.id', '=', 'dn.contact_id')
+                    ->leftJoin('companies as cmp', 'cmp.id', '=', 'ct.company_id')
+                    ->leftJoin('countries as co', 'co.id', '=', 'ct.country_id')
+                    ->select(
+                        'dn.id as note_id',
+                        'dn.note_number',
+                        'dn.note_type',
+                        'dn.note_date',
+                        'dn.status',
+                        'ct.name as contact_name',
+                        'ct.code_meta as contact_code',
+                        'co.name as country',
+                        'cmp.name as company_name',
+                        DB::raw("COALESCE(NULLIF(ct.currency, ''), 'USD') as currency")
+                    );
+
+                if ($request->filled('contact_id')) {
+                    $fallback->where('dn.contact_id', $request->input('contact_id'));
+                }
+
+                $data = $fallback->orderBy('dn.id', 'DESC')->get();
+
+                return response()->json($this->formatForTable($data));
+            } catch (\Exception $e2) {
+                return response()->json([
+                    'error' => 'Failed to fetch all Credit/Debit Notes',
+                    'details' => $e->getMessage()
+                ], 500);
+            }
         }
     }
 
