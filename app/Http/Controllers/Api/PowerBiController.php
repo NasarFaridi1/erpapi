@@ -38,46 +38,16 @@ class PowerBiController extends Controller
     public function contracts()
     {
         try {
-            $contracts = DB::table('contracts as c')
-                ->leftJoin('deal as pd', 'pd.id', '=', 'c.purchase_id')
-                ->leftJoin('deal as sd', 'sd.id', '=', 'c.sale_id')
-                ->leftJoin('companies as p_cmp', 'p_cmp.id', '=', 'pd.meta_company_id')
-                ->leftJoin('companies as s_cmp', 's_cmp.id', '=', 'sd.meta_company_id')
-                ->leftJoin('contacts as p_ct', 'p_ct.id', '=', 'pd.contact_id')
-                ->leftJoin('contacts as s_ct', 's_ct.id', '=', 'sd.contact_id')
-                ->leftJoin('countries as p_co', 'p_co.id', '=', 'p_ct.country_id')
-                ->leftJoin('countries as s_co', 's_co.id', '=', 's_ct.country_id')
-                ->leftJoin('companies as p_client_cmp', 'p_client_cmp.id', '=', 'p_ct.company_id')
-                ->leftJoin('companies as s_client_cmp', 's_client_cmp.id', '=', 's_ct.company_id')
-                ->leftJoin('payment_type as p_pt', 'p_pt.id', '=', 'pd.payment_type_id')
-                ->leftJoin('payment_terms_type as p_ptt', 'p_ptt.id', '=', 'pd.payment_terms_type_id')
-                ->leftJoin('payment_type as s_pt', 's_pt.id', '=', 'sd.payment_type_id')
-                ->leftJoin('payment_terms_type as s_ptt', 's_ptt.id', '=', 'sd.payment_terms_type_id')
-                ->select(
-                    'c.id as contract_id',
-                    'c.*',
-                    'c.order_code',
-                    'c.sales_invoice_number',
-                    'p_ct.name as supplier_name',
-                    'p_ct.code_meta as supplier_code',
-                    'p_co.name as supplier_country',
-                    'p_client_cmp.name as supplier_company',
-                    'p_cmp.name as purchase_meta_company',
-                    'p_pt.description as purchase_payment_type',
-                    'p_ptt.description as purchase_payment_terms',
-                    's_ct.name as customer_name',
-                    's_ct.code_meta as customer_code',
-                    's_co.name as customer_country',
-                    's_client_cmp.name as customer_company',
-                    's_cmp.name as sales_meta_company',
-                    's_pt.description as sales_payment_type',
-                    's_ptt.description as sales_payment_terms'
-                )
-                ->orderBy('c.id', 'DESC')
-                ->get();
-
-            return response()->json($this->formatForTable($contracts), 200);
-
+            $contractColumns = DB::select('DESCRIBE contracts');
+            $dealColumns = DB::select('DESCRIBE deal');
+            $sampleContract = DB::table('contracts')->orderBy('id', 'DESC')->first();
+            $sampleDeal = DB::table('deal')->orderBy('id', 'DESC')->first();
+            return response()->json([
+                'contracts_columns' => $contractColumns,
+                'deal_columns' => $dealColumns,
+                'sample_contract' => $sampleContract,
+                'sample_deal' => $sampleDeal,
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to fetch contracts',
