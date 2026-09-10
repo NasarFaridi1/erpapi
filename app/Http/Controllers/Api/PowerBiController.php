@@ -55,6 +55,7 @@ class PowerBiController extends Controller
                 ->leftJoin('payment_terms_type as s_ptt', 's_ptt.id', '=', 'sd.payment_terms_type_id')
                 ->select(
                     'c.id as contract_id',
+                    'c.*',
                     'c.order_code',
                     'c.sales_invoice_number',
                     'p_ct.name as supplier_name',
