@@ -33,21 +33,149 @@ class PowerBiController extends Controller
     }
 
     /**
-     * All Contracts Master
+     * Helper to build stage and status DB expressions for contracts master
+     */
+    private function buildStageAndStatusForContracts()
+    {
+        $hasDealStageId = Schema::hasColumn('deal', 'stage_id');
+        $hasDealStage = Schema::hasColumn('deal', 'stage');
+        $hasContractStageId = Schema::hasColumn('contracts', 'stage_id');
+        $hasContractStage = Schema::hasColumn('contracts', 'stage');
+
+        if ($hasContractStageId) {
+            $stageExpr = "COALESCE(c.stage_id, CASE WHEN c.sales_invoice_number IS NOT NULL AND c.sales_invoice_number != '' THEN 5 ELSE 1 END) as stage";
+        } elseif ($hasContractStage) {
+            $stageExpr = "COALESCE(c.stage, CASE WHEN c.sales_invoice_number IS NOT NULL AND c.sales_invoice_number != '' THEN 5 ELSE 1 END) as stage";
+        } elseif ($hasDealStageId) {
+            $stageExpr = "COALESCE(NULLIF(sd.stage_id, 0), NULLIF(pd.stage_id, 0), CASE WHEN c.sales_invoice_number IS NOT NULL AND c.sales_invoice_number != '' THEN 5 ELSE 1 END) as stage";
+        } elseif ($hasDealStage) {
+            $stageExpr = "COALESCE(NULLIF(sd.stage, 0), NULLIF(pd.stage, 0), CASE WHEN c.sales_invoice_number IS NOT NULL AND c.sales_invoice_number != '' THEN 5 ELSE 1 END) as stage";
+        } else {
+            $stageExpr = "CASE WHEN c.sales_invoice_number IS NOT NULL AND c.sales_invoice_number != '' THEN 5 ELSE 1 END as stage";
+        }
+
+        $hasDealStatus = Schema::hasColumn('deal', 'status');
+        $hasContractStatus = Schema::hasColumn('contracts', 'status');
+
+        if ($hasContractStatus) {
+            $statusExpr = "CASE 
+                WHEN LOWER(c.status) IN ('canceled', 'cancelled', 'void') THEN 'Canceled'
+                WHEN LOWER(c.status) IN ('closed', 'completed', 'done', '5') OR (c.sales_invoice_number IS NOT NULL AND c.sales_invoice_number != '') THEN 'Closed'
+                ELSE 'Open'
+            END as status";
+        } elseif ($hasDealStatus) {
+            $statusExpr = "CASE 
+                WHEN LOWER(COALESCE(sd.status, pd.status, '')) IN ('canceled', 'cancelled', 'void') THEN 'Canceled'
+                WHEN LOWER(COALESCE(sd.status, pd.status, '')) IN ('closed', 'completed', 'done', '5') 
+                     OR (c.sales_invoice_number IS NOT NULL AND c.sales_invoice_number != '') THEN 'Closed'
+                ELSE 'Open'
+            END as status";
+        } else {
+            $statusExpr = "CASE 
+                WHEN c.sales_invoice_number IS NOT NULL AND c.sales_invoice_number != '' THEN 'Closed'
+                ELSE 'Open'
+            END as status";
+        }
+
+        return [$stageExpr, $statusExpr];
+    }
+
+    /**
+     * Helper to build stage and status DB expressions for single deal queries (Sales / Purchases)
+     */
+    private function buildStageAndStatusForDeal($dealAlias = 'd')
+    {
+        $hasStageId = Schema::hasColumn('deal', 'stage_id');
+        $hasStage = Schema::hasColumn('deal', 'stage');
+        $hasContractStageId = Schema::hasColumn('contracts', 'stage_id');
+        $hasContractStage = Schema::hasColumn('contracts', 'stage');
+
+        if ($hasStageId) {
+            $stageExpr = "COALESCE(NULLIF({$dealAlias}.stage_id, 0), CASE WHEN c.sales_invoice_number IS NOT NULL AND c.sales_invoice_number != '' THEN 5 ELSE 1 END) as stage";
+        } elseif ($hasStage) {
+            $stageExpr = "COALESCE(NULLIF({$dealAlias}.stage, 0), CASE WHEN c.sales_invoice_number IS NOT NULL AND c.sales_invoice_number != '' THEN 5 ELSE 1 END) as stage";
+        } elseif ($hasContractStageId) {
+            $stageExpr = "COALESCE(c.stage_id, CASE WHEN c.sales_invoice_number IS NOT NULL AND c.sales_invoice_number != '' THEN 5 ELSE 1 END) as stage";
+        } elseif ($hasContractStage) {
+            $stageExpr = "COALESCE(c.stage, CASE WHEN c.sales_invoice_number IS NOT NULL AND c.sales_invoice_number != '' THEN 5 ELSE 1 END) as stage";
+        } else {
+            $stageExpr = "CASE WHEN c.sales_invoice_number IS NOT NULL AND c.sales_invoice_number != '' THEN 5 ELSE 1 END as stage";
+        }
+
+        $hasDealStatus = Schema::hasColumn('deal', 'status');
+        $hasContractStatus = Schema::hasColumn('contracts', 'status');
+
+        if ($hasDealStatus) {
+            $statusExpr = "CASE 
+                WHEN LOWER({$dealAlias}.status) IN ('canceled', 'cancelled', 'void') THEN 'Canceled'
+                WHEN LOWER({$dealAlias}.status) IN ('closed', 'completed', 'done', '5') 
+                     OR (c.sales_invoice_number IS NOT NULL AND c.sales_invoice_number != '') THEN 'Closed'
+                ELSE 'Open'
+            END as status";
+        } elseif ($hasContractStatus) {
+            $statusExpr = "CASE 
+                WHEN LOWER(c.status) IN ('canceled', 'cancelled', 'void') THEN 'Canceled'
+                WHEN LOWER(c.status) IN ('closed', 'completed', 'done', '5') OR (c.sales_invoice_number IS NOT NULL AND c.sales_invoice_number != '') THEN 'Closed'
+                ELSE 'Open'
+            END as status";
+        } else {
+            $statusExpr = "CASE 
+                WHEN c.sales_invoice_number IS NOT NULL AND c.sales_invoice_number != '' THEN 'Closed'
+                ELSE 'Open'
+            END as status";
+        }
+
+        return [$stageExpr, $statusExpr];
+    }
+
+    /**
+     * All Contracts Master with Stage (5 for Complete) and Status (Open, Closed, Canceled)
      */
     public function contracts()
     {
         try {
-            $contractCols = DB::select("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'contracts' AND TABLE_SCHEMA = DATABASE()");
-            $dealCols = DB::select("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'deal' AND TABLE_SCHEMA = DATABASE()");
-            $sampleContract = DB::table('contracts')->orderBy('id', 'DESC')->first();
-            $sampleDeal = DB::table('deal')->orderBy('id', 'DESC')->first();
-            return response()->json([
-                'contracts' => array_column($contractCols, 'COLUMN_NAME'),
-                'deal' => array_column($dealCols, 'COLUMN_NAME'),
-                'sample_contract' => $sampleContract,
-                'sample_deal' => $sampleDeal,
-            ]);
+            list($stageExpr, $statusExpr) = $this->buildStageAndStatusForContracts();
+
+            $contracts = DB::table('contracts as c')
+                ->leftJoin('deal as pd', 'pd.id', '=', 'c.purchase_id')
+                ->leftJoin('deal as sd', 'sd.id', '=', 'c.sale_id')
+                ->leftJoin('companies as p_cmp', 'p_cmp.id', '=', 'pd.meta_company_id')
+                ->leftJoin('companies as s_cmp', 's_cmp.id', '=', 'sd.meta_company_id')
+                ->leftJoin('contacts as p_ct', 'p_ct.id', '=', 'pd.contact_id')
+                ->leftJoin('contacts as s_ct', 's_ct.id', '=', 'sd.contact_id')
+                ->leftJoin('countries as p_co', 'p_co.id', '=', 'p_ct.country_id')
+                ->leftJoin('countries as s_co', 's_co.id', '=', 's_ct.country_id')
+                ->leftJoin('companies as p_client_cmp', 'p_client_cmp.id', '=', 'p_ct.company_id')
+                ->leftJoin('companies as s_client_cmp', 's_client_cmp.id', '=', 's_ct.company_id')
+                ->leftJoin('payment_type as p_pt', 'p_pt.id', '=', 'pd.payment_type_id')
+                ->leftJoin('payment_terms_type as p_ptt', 'p_ptt.id', '=', 'pd.payment_terms_type_id')
+                ->leftJoin('payment_type as s_pt', 's_pt.id', '=', 'sd.payment_type_id')
+                ->leftJoin('payment_terms_type as s_ptt', 's_ptt.id', '=', 'sd.payment_terms_type_id')
+                ->select(
+                    'c.id as contract_id',
+                    'c.order_code',
+                    'c.sales_invoice_number',
+                    DB::raw($stageExpr),
+                    DB::raw($statusExpr),
+                    'p_ct.name as supplier_name',
+                    'p_ct.code_meta as supplier_code',
+                    'p_co.name as supplier_country',
+                    'p_client_cmp.name as supplier_company',
+                    'p_cmp.name as purchase_meta_company',
+                    'p_pt.description as purchase_payment_type',
+                    'p_ptt.description as purchase_payment_terms',
+                    's_ct.name as customer_name',
+                    's_ct.code_meta as customer_code',
+                    's_co.name as customer_country',
+                    's_client_cmp.name as customer_company',
+                    's_cmp.name as sales_meta_company',
+                    's_pt.description as sales_payment_type',
+                    's_ptt.description as sales_payment_terms'
+                )
+                ->orderBy('c.id', 'DESC')
+                ->get();
+
+            return response()->json($this->formatForTable($contracts), 200);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to fetch contracts',
@@ -126,12 +254,11 @@ class PowerBiController extends Controller
         }
     }
 
-    /**
-     * Purchases by Contact ID with Real Product Line Data (deal_product)
-     */
     public function purchases($contactId)
     {
         try {
+            list($stageExpr, $statusExpr) = $this->buildStageAndStatusForDeal('d');
+
             $data = DB::table('contracts as c')
                 ->whereNotNull('c.purchase_id')
                 ->join('deal as d', 'd.id', '=', 'c.purchase_id')
@@ -153,6 +280,8 @@ class PowerBiController extends Controller
                     'c.id as contract_id',
                     'c.order_code',
                     'c.sales_invoice_number',
+                    DB::raw($stageExpr),
+                    DB::raw($statusExpr),
                     'ct.name as supplier_name',
                     'ct.code_meta as supplier_code',
                     'co.name as country',
@@ -191,6 +320,8 @@ class PowerBiController extends Controller
     public function sales($contactId)
     {
         try {
+            list($stageExpr, $statusExpr) = $this->buildStageAndStatusForDeal('d');
+
             $data = DB::table('contracts as c')
                 ->whereNotNull('c.sale_id')
                 ->join('deal as d', 'd.id', '=', 'c.sale_id')
@@ -212,6 +343,8 @@ class PowerBiController extends Controller
                     'c.id as contract_id',
                     'c.order_code',
                     'c.sales_invoice_number',
+                    DB::raw($stageExpr),
+                    DB::raw($statusExpr),
                     'ct.name as customer_name',
                     'ct.code_meta as customer_code',
                     'co.name as country',
@@ -709,6 +842,8 @@ class PowerBiController extends Controller
     public function allSales(Request $request)
     {
         try {
+            list($stageExpr, $statusExpr) = $this->buildStageAndStatusForDeal('d');
+
             $query = DB::table('contracts as c')
                 ->whereNotNull('c.sale_id')
                 ->join('deal as d', 'd.id', '=', 'c.sale_id')
@@ -729,6 +864,8 @@ class PowerBiController extends Controller
                     'c.id as contract_id',
                     'c.order_code',
                     'c.sales_invoice_number',
+                    DB::raw($stageExpr),
+                    DB::raw($statusExpr),
                     'ct.name as customer_name',
                     'ct.code_meta as customer_code',
                     'co.name as country',
@@ -771,6 +908,8 @@ class PowerBiController extends Controller
     public function allPurchases(Request $request)
     {
         try {
+            list($stageExpr, $statusExpr) = $this->buildStageAndStatusForDeal('d');
+
             $query = DB::table('contracts as c')
                 ->whereNotNull('c.purchase_id')
                 ->join('deal as d', 'd.id', '=', 'c.purchase_id')
@@ -791,6 +930,8 @@ class PowerBiController extends Controller
                     'c.id as contract_id',
                     'c.order_code',
                     'c.sales_invoice_number',
+                    DB::raw($stageExpr),
+                    DB::raw($statusExpr),
                     'ct.name as supplier_name',
                     'ct.code_meta as supplier_code',
                     'co.name as country',
@@ -825,15 +966,5 @@ class PowerBiController extends Controller
                 'details' => $e->getMessage()
             ], 500);
         }
-    }
-
-    public function debugSchema()
-    {
-        return response()->json([
-            'contracts_cols' => DB::select('DESCRIBE contracts'),
-            'deal_cols' => DB::select('DESCRIBE deal'),
-            'sample_contract' => DB::table('contracts')->orderBy('id', 'DESC')->first(),
-            'sample_deal' => DB::table('deal')->orderBy('id', 'DESC')->first(),
-        ]);
     }
 }

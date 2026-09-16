@@ -79,12 +79,14 @@ Fetches all purchase contracts and line items with **all foreign key IDs resolve
 ---
 
 ### `GET /api/powerbi/contracts`
-Fetches all contracts with **Supplier, Customer, Countries, Operating Companies, and Payment Terms resolved**.
+Fetches all contracts with **Stage, Status (Open, Closed, Canceled), Supplier, Customer, Countries, Operating Companies, and Payment Terms resolved**.
 
 * **Method**: `GET`
 * **URL**: `https://metaerpapi.aideepseek.uk/api/powerbi/contracts`
 * **Resolved Relationship Fields Returned**:
   - `contract_id`, `order_code`, `sales_invoice_number`
+  - `stage`: Contract stage number (`5` for Complete / Finished, `1`-`4` for in-progress)
+  - `status`: High-level status (`Open`, `Closed`, `Canceled`)
   - `supplier_name`, `supplier_code`, `supplier_country`, `supplier_company`
   - `purchase_meta_company`, `purchase_payment_type`, `purchase_payment_terms`
   - `customer_name`, `customer_code`, `customer_country`, `customer_company`

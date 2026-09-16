@@ -27,7 +27,6 @@ Route::prefix('powerbi')
         Route::get('/products', [PowerBiController::class, 'products']);
         Route::get('/companies', [PowerBiController::class, 'companies']);
         Route::get('/contracts', [PowerBiController::class, 'contracts']);
-        Route::get('/debug-schema', [PowerBiController::class, 'debugSchema']);
 
         // --- Comprehensive Sales, Purchases & Notes APIs (Global Reports) ---
         Route::get('/sales', [PowerBiController::class, 'allSales']);
