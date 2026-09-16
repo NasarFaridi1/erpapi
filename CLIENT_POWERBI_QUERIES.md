@@ -64,7 +64,7 @@ in
 ---
 
 ### Query 3: All Contracts Master (`api/powerbi/contracts`)
-*Fetches all contracts with resolved Supplier, Customer, Countries, Operating Companies, and Payment Terms.*
+*Fetches all contracts with resolved Stage (5 for complete), Status (Open, Closed, Canceled), Supplier, Customer, Countries, Operating Companies, and Payment Terms.*
 
 ```powerquery
 let
@@ -72,7 +72,7 @@ let
     TokenBody = [grant_type="client_credentials", client_id="powerbi_client_2026", client_secret="sec_erp_api_9823472398472938"],
     TokenResponse = Json.Document(Web.Contents(TokenUrl, [RelativePath="api/oauth/token", Content=Text.ToBinary(Uri.BuildQueryString(TokenBody)), Headers=[#"Content-Type"="application/x-www-form-urlencoded"]])),
     AccessToken = Text.Trim(Text.Clean(Text.Replace(Text.Replace(Text.From(TokenResponse[access_token]), "#(cr)", ""), "#(lf)", ""))),
-    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/contracts", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json"]])),
+    Source = Json.Document(Web.Contents("https://metaerpapi.aideepseek.uk", [RelativePath="api/powerbi/contracts", Headers=[#"Authorization"="Bearer " & AccessToken, #"Accept"="application/json", #"Cache-Control"="no-cache"]])),
     TableFromList = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
     ExpandedColumns = Table.ExpandRecordColumn(TableFromList, "Column1", Record.FieldNames(Source{0}))
 in
