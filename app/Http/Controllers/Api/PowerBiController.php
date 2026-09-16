@@ -854,4 +854,14 @@ class PowerBiController extends Controller
             ], 500);
         }
     }
+
+    public function debugSchema()
+    {
+        return response()->json([
+            'contracts_cols' => DB::select('DESCRIBE contracts'),
+            'deal_cols' => DB::select('DESCRIBE deal'),
+            'sample_contract' => DB::table('contracts')->orderBy('id', 'DESC')->first(),
+            'sample_deal' => DB::table('deal')->orderBy('id', 'DESC')->first(),
+        ]);
+    }
 }
