@@ -37,6 +37,7 @@ Fetches all sales contracts and line items with **all foreign key IDs resolved i
   - `customer_name`: Contact name (from `contacts.name` via `contact_id`)
   - `customer_code`: Code meta (e.g. `SA01788`)
   - `country`: Country name (from `countries.name` via `country_id`, e.g. `Saudi Arabia`)
+  - `origin_country`: Origin country of the goods (from linked purchase supplier's country)
   - `customer_company`: Company name of customer (from `companies.name` via `company_id`)
   - `meta_company`: Internal operating company (from `companies.name` via `meta_company_id`)
   - `product_name`: Name of product (from `products.name` via `product_id`)
@@ -67,6 +68,7 @@ Fetches all purchase contracts and line items with **all foreign key IDs resolve
   - `supplier_name`: Supplier name (from `contacts.name` via `contact_id`)
   - `supplier_code`: Code meta
   - `country`: Country name (from `countries.name` via `country_id`)
+  - `origin_country`: Origin country of the goods (supplier's country)
   - `supplier_company`: Company name of supplier (from `companies.name` via `company_id`)
   - `meta_company`: Internal operating company (from `companies.name` via `meta_company_id`)
   - `product_name`: Name of product (from `products.name` via `product_id`)

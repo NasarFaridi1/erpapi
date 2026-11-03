@@ -285,6 +285,7 @@ class PowerBiController extends Controller
                     'ct.name as supplier_name',
                     'ct.code_meta as supplier_code',
                     'co.name as country',
+                    'co.name as origin_country',
                     'supplier_cmp.name as supplier_company',
                     'cmp.name as meta_company',
                     'p.name as product_name',
@@ -338,6 +339,9 @@ class PowerBiController extends Controller
                 ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
                 ->leftJoin('payment_type as pt', 'pt.id', '=', 'd.payment_type_id')
                 ->leftJoin('payment_terms_type as ptt', 'ptt.id', '=', 'd.payment_terms_type_id')
+                ->leftJoin('deal as pd', 'pd.id', '=', 'c.purchase_id')
+                ->leftJoin('contacts as p_ct', 'p_ct.id', '=', 'pd.contact_id')
+                ->leftJoin('countries as origin_co', 'origin_co.id', '=', 'p_ct.country_id')
                 ->where('d.contact_id', $contactId)
                 ->select(
                     'c.id as contract_id',
@@ -348,6 +352,7 @@ class PowerBiController extends Controller
                     'ct.name as customer_name',
                     'ct.code_meta as customer_code',
                     'co.name as country',
+                    'origin_co.name as origin_country',
                     'client_cmp.name as customer_company',
                     'cmp.name as meta_company',
                     'p.name as product_name',
@@ -860,6 +865,9 @@ class PowerBiController extends Controller
                 ->leftJoin('companies as cmp', 'cmp.id', '=', 'd.meta_company_id')
                 ->leftJoin('payment_type as pt', 'pt.id', '=', 'd.payment_type_id')
                 ->leftJoin('payment_terms_type as ptt', 'ptt.id', '=', 'd.payment_terms_type_id')
+                ->leftJoin('deal as pd', 'pd.id', '=', 'c.purchase_id')
+                ->leftJoin('contacts as p_ct', 'p_ct.id', '=', 'pd.contact_id')
+                ->leftJoin('countries as origin_co', 'origin_co.id', '=', 'p_ct.country_id')
                 ->select(
                     'c.id as contract_id',
                     'c.order_code',
@@ -869,6 +877,7 @@ class PowerBiController extends Controller
                     'ct.name as customer_name',
                     'ct.code_meta as customer_code',
                     'co.name as country',
+                    'origin_co.name as origin_country',
                     'client_cmp.name as customer_company',
                     'cmp.name as meta_company',
                     'p.name as product_name',
@@ -935,6 +944,7 @@ class PowerBiController extends Controller
                     'ct.name as supplier_name',
                     'ct.code_meta as supplier_code',
                     'co.name as country',
+                    'co.name as origin_country',
                     'supplier_cmp.name as supplier_company',
                     'cmp.name as meta_company',
                     'p.name as product_name',
